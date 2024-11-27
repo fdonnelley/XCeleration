@@ -1,0 +1,11 @@
+connect phones together using bluetooth
+use a fallback qr code for data transfer
+add picture taking to record bib numbers with teo's model
+make graphics look better
+make it so people can click volume button or press a key to log time instead of clicking
+
+explaination 'I would have one phone click some button that is a start race with collaborator or something and it would connect via bluetooth to another persons phone. 
+I would change the graphics to a record bib numbers page where the person could record bib numbers by either taking picture of them or manually typing it in (both options would have to be easy to do quickly 
+and it should not require extra clicking to add many quickly. Meanwhile the other person is clicking a button every time somebody crosses the finish line to log their time. 
+after the person logging times clicks the stop race button, the list of bib numbers that the first person got would be sent via bluetooth to the second persons phone and update all of the times to have the bib numbers. 
+it would not need to sync during the race, just once afterwards. I would also want to add a qr code method of data transfer if the bluetooth doesn't work'
