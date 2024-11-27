@@ -81,6 +81,47 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
   }
 
+  void _disconnectDevice() async {
+    final bluetoothService = app_bluetooth.BluetoothService();
+    if (_connectedDevice == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Disconnect'),
+          content: const Text('Are you sure you want to disconnect?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              child: const Text('Disconnect'),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      try {
+        await bluetoothService.disconnectDevice(_connectedDevice!);
+        setState(() {
+          _connectedDevice = null; // Clear the connected device
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Disconnected successfully')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to disconnect: $e')),
+        );
+      }
+    }
+  }
+
   void _connectToDevice(BluetoothDevice device) async {
     try {
       final connectedDevice = await _bluetoothService.connectToDevice(device);
@@ -222,6 +263,13 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
               onPressed: _sendBibNumbers,
               child: const Text('Send Bib Numbers'),
             ),
+          if (_connectedDevice != null) ...[
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: _disconnectDevice, // Add disconnect button
+                child: const Text('Disconnect'),
+              ),
+          ],
         ],
       ),
     );
