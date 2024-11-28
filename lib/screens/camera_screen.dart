@@ -1,5 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart'; // Add this import
+
 
 class CameraScreen extends StatefulWidget {
   @override
@@ -14,7 +16,18 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    requestCameraPermission();
+  }
+
+  Future<void> requestCameraPermission() async {
+    final status = await Permission.camera.request();
+    if (status.isGranted) {
+      print('permission granted');
+      _initializeCamera();
+    } else {
+      print("Camera permission denied");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Camera permission denied")));
+    }
   }
 
   Future<void> _initializeCamera() async {
