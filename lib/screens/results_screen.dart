@@ -22,7 +22,7 @@ class ResultsScreenState extends State<ResultsScreen> {
         : _calculateOverallTeamResults();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Team Results')),
+      // appBar: AppBar(title: const Text('Team Results')),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -59,7 +59,10 @@ class ResultsScreenState extends State<ResultsScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => downloadCsv(teamResults, individualResults),
                   icon: const Icon(Icons.download),
-                  label: const Text('Download CSV Results'),
+                  label: const Text('Download CSV Results', style: TextStyle(fontSize: 20)),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                  ),
                 ),
               ),
               

@@ -1,7 +1,7 @@
 import 'package:race_timing_app/screens/results_screen.dart';
 import 'package:race_timing_app/utils/time_formatter.dart';
 import 'package:flutter/material.dart';
-import 'bib_number_screen.dart';
+// import 'bib_number_screen.dart';
 // import 'package:race_timing_app/bluetooth_service.dart' as app_bluetooth;
 import 'package:race_timing_app/database_helper.dart';
 // import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -129,10 +129,14 @@ class _TimingScreenState extends State<TimingScreen> {
   }
 
   void _scanQRCode() async {
-    final result = await BarcodeScanner.scan();
-    if (result.type == ResultType.Barcode) {
-      print('Scanned barcode: ${result.rawContent}');
-      _processQRData(result.rawContent);
+    try {
+      final result = await BarcodeScanner.scan();
+      if (result.type == ResultType.Barcode) {
+        print('Scanned barcode: ${result.rawContent}');
+        _processQRData(result.rawContent);
+      }
+    } catch (e) {
+      _showErrorMessage('Failed to scan QR code: $e');
     }
   }
 
@@ -288,15 +292,15 @@ class _TimingScreenState extends State<TimingScreen> {
   // }
 
 
-  void _navigateToBibNumbers() {
-    // Navigate to the BibNumberScreen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const BibNumberScreen(),
-      ),
-    );
-  }
+  // void _navigateToBibNumbers() {
+  //   // Navigate to the BibNumberScreen
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => const BibNumberScreen(),
+  //     ),
+  //   );
+  // }
 
   void _navigateToResults() {
     // Navigate to the results page
@@ -319,7 +323,7 @@ class _TimingScreenState extends State<TimingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Race Timing')),
+      // appBar: AppBar(title: const Text('Race Timing')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -331,25 +335,35 @@ class _TimingScreenState extends State<TimingScreen> {
               children: [
                 ElevatedButton(
                   onPressed: _startTime == null ? _startRace : _stopRace,
-                  child: Text(_startTime == null ? 'Start Race' : 'Stop Race'),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                  ),
+                  child: Text(_startTime == null ? 'Start Race' : 'Stop Race', style: TextStyle(fontSize: 20)),
                 ),
-                ElevatedButton(
-                  onPressed: _startTime != null ? _logTime : null,
-                  child: const Text('Log Time'),
-                ),
+                if ((_startTime == null && _records.isEmpty) || (_startTime != null))
+                  ElevatedButton(
+                    onPressed: _startTime != null ? _logTime : null,
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                    ),
+                    child: const Text('Log Time', style: TextStyle(fontSize: 20)),
+                  ),
                 if (_startTime == null && _records.isNotEmpty)
                   ElevatedButton(
-                  onPressed: _scanQRCode,
-                  child: const Text('Scan QR Code'),
-              ),
+                    onPressed: _scanQRCode,
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                    ),
+                    child: const Text('Scan QR Code', style: TextStyle(fontSize: 20)),
+                  ),
               ],
             ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _navigateToBibNumbers,
-              icon: const Icon(Icons.numbers),
-              label: const Text('Record Bib Numbers'),
-            ),
+            // const SizedBox(height: 16),
+            // ElevatedButton.icon(
+            //   onPressed: _navigateToBibNumbers,
+            //   icon: const Icon(Icons.numbers),
+            //   label: const Text('Record Bib Numbers'),
+            // ),
             if (_startTime == null && _records.isNotEmpty) ...[
               const SizedBox(height: 8),
               ElevatedButton.icon(

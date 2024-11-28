@@ -257,89 +257,101 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Record Bib Numbers')),
-      body: Column(
-        children: [
-          ElevatedButton(
-            onPressed: _addBibNumber,
-            child: const Text('Add Bib Number'),
-          ),
-          if (_bibRecords.isNotEmpty)
-            ElevatedButton(
-              onPressed: _showQrCode,
-              child: const Text('Share Bib Numbers'),
+      // appBar: AppBar(title: const Text('Record Bib Numbers')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: ElevatedButton(
+                onPressed: _addBibNumber,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                ),
+                child: const Text('Add Bib Number', style: TextStyle(fontSize: 20)),
+              ),
             ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _bibRecords.length,
-              itemBuilder: (context, index) {
-                // final record = _bibRecords[index];
-                final controller = _controllers[index];
-                final focusNode = _focusNodes[index];
+            if (_bibRecords.isNotEmpty)
+              ElevatedButton(
+                onPressed: _showQrCode,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                ),
+                child: const Text('Share Bib Numbers', style: TextStyle(fontSize: 20)),
+              ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _bibRecords.length,
+                itemBuilder: (context, index) {
+                  // final record = _bibRecords[index];
+                  final controller = _controllers[index];
+                  final focusNode = _focusNodes[index];
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-                  child: Card(
-                    elevation: 2,
-                    margin: const EdgeInsets.symmetric(vertical: 6.0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              focusNode: focusNode,
-                              controller: controller,
-                              decoration: InputDecoration(
-                                hintText: 'Enter Bib #',
-                                border: OutlineInputBorder(),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                    child: Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 6.0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                focusNode: focusNode,
+                                controller: controller,
+                                decoration: InputDecoration(
+                                  hintText: 'Enter Bib #',
+                                  border: OutlineInputBorder(),
+                                ),
+                                onChanged: (value) => _updateBibNumber(index, value),
                               ),
-                              onChanged: (value) => _updateBibNumber(index, value),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.camera_alt),
-                            onPressed: () => _captureBibNumber(index),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.camera_alt),
+                              onPressed: () => _captureBibNumber(index),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-          // ElevatedButton(
-          //   onPressed: _findDevices,
-          //   child: const Text('Find Devices'),
-          // ),
-          // if (_connectedDevice == null)
-          //   DropdownButton<BluetoothDevice>(
-          //     hint: const Text('Select Device'),
-          //     items: _availableDevices.map((device) {
-          //       return DropdownMenuItem(
-          //         value: device,
-          //         child: Text(device.platformName),
-          //       );
-          //     }).toList(),
-          //     onChanged: (device) {
-          //       if (device != null) _connectToDevice(device);
-          //     },
-          //   ),
-          // if (_connectedDevice != null)
-          //   ElevatedButton(
-          //     onPressed: _sendBibNumbers,
-          //     child: const Text('Send Bib Numbers'),
-          //   ),
-          // if (_connectedDevice != null) ...[
-          //     const SizedBox(height: 8),
-          //     ElevatedButton(
-          //       onPressed: _disconnectDevice, // Add disconnect button
-          //       child: const Text('Disconnect'),
-          //     ),
-          // ],
-        ],
+            // ElevatedButton(
+            //   onPressed: _findDevices,
+            //   child: const Text('Find Devices'),
+            // ),
+            // if (_connectedDevice == null)
+            //   DropdownButton<BluetoothDevice>(
+            //     hint: const Text('Select Device'),
+            //     items: _availableDevices.map((device) {
+            //       return DropdownMenuItem(
+            //         value: device,
+            //         child: Text(device.platformName),
+            //       );
+            //     }).toList(),
+            //     onChanged: (device) {
+            //       if (device != null) _connectToDevice(device);
+            //     },
+            //   ),
+            // if (_connectedDevice != null)
+            //   ElevatedButton(
+            //     onPressed: _sendBibNumbers,
+            //     child: const Text('Send Bib Numbers'),
+            //   ),
+            // if (_connectedDevice != null) ...[
+            //     const SizedBox(height: 8),
+            //     ElevatedButton(
+            //       onPressed: _disconnectDevice, // Add disconnect button
+            //       child: const Text('Disconnect'),
+            //     ),
+            // ],
+          ],
+        ),
       ),
     );
   }
