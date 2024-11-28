@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'camera_screen.dart';
+// import 'camera_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:convert';
-import 'package:camera/camera.dart';
+// import 'package:camera/camera.dart';
 // import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 // import 'package:race_timing_app/bluetooth_service.dart' as app_bluetooth;
 
@@ -18,7 +18,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   final List<TextEditingController> _controllers = [];
   final List<FocusNode> _focusNodes = [];
   final List<Map<String, dynamic>> _bibRecords = [];
-  // final ImagePicker _imagePicker = ImagePicker();
+  final ImagePicker _imagePicker = ImagePicker();
   // late CameraController _cameraController;
   // final app_bluetooth.BluetoothService _bluetoothService = app_bluetooth.BluetoothService();
   // BluetoothDevice? _connectedDevice;
@@ -43,24 +43,24 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     });
   }
 
-  Future<void> _captureBibNumber(int index) async {
-    // Navigate to the CameraScreen to capture an image
-    final imagePath = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => CameraScreen()),
-    );
+  // Future<void> _captureBibNumber(int index) async {
+  //   // Navigate to the CameraScreen to capture an image
+  //   final imagePath = await Navigator.push(
+  //     context,
+  //     MaterialPageRoute(builder: (context) => CameraScreen()),
+  //   );
 
-    if (imagePath != null) {
-      // Placeholder: Process the image to extract numbers
-      String extractedBib = _processImageToExtractNumber(imagePath);
+  //   if (imagePath != null) {
+  //     // Placeholder: Process the image to extract numbers
+  //     String extractedBib = _processImageToExtractNumber(imagePath);
 
-      // Update the text field and record with the extracted number
-      setState(() {
-        _controllers[index].text = extractedBib;
-        _bibRecords[index]['bib_number'] = extractedBib;
-      });
-    }
-  }
+  //     // Update the text field and record with the extracted number
+  //     setState(() {
+  //       _controllers[index].text = extractedBib;
+  //       _bibRecords[index]['bib_number'] = extractedBib;
+  //     });
+  //   }
+  // }
 
   // Future<void> initCamera() async {
   //   final cameras = await availableCameras();
@@ -71,25 +71,25 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   //   await _cameraController.initialize();
   // }
 
-  // Future<void> _captureBibNumber(int index) async {
-  //   // Use the ImagePicker to take a picture
-  //   // final XFile? image = await _imagePicker.pickImage(source: ImageSource.camera);
+  Future<void> _captureBibNumber(int index) async {
+    // Use the ImagePicker to take a picture
+    final XFile? image = await _imagePicker.pickImage(source: ImageSource.camera);
 
-  //   final image = await _cameraController.takePicture();
-  //   print('Photo captured at ${image.path}');
-  //   print(image.runtimeType);
+    // final image = await _cameraController.takePicture();
+    // print('Photo captured at ${image.path}');
+    print(image.runtimeType);
 
-  //   if (image != null) {
-  //     // Placeholder: Process the image to extract numbers
-  //     String extractedBib = _processImageToExtractNumber(image);
+    if (image != null) {
+      // Placeholder: Process the image to extract numbers
+      String extractedBib = _processImageToExtractNumber(image);
 
-  //     // Update the text field and record with the extracted number
-  //     setState(() {
-  //       _controllers[index].text = extractedBib;
-  //       _bibRecords[index]['bib_number'] = extractedBib;
-  //     });
-  //   }
-  // }
+      // Update the text field and record with the extracted number
+      setState(() {
+        _controllers[index].text = extractedBib;
+        _bibRecords[index]['bib_number'] = extractedBib;
+      });
+    }
+  }
 
   Future<void> _showQrCode() async {
     final data = _generateQrData(); // Ensure this returns a String

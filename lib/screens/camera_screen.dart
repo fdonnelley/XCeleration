@@ -10,7 +10,7 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   late List<CameraDescription> cameras;
-  late CameraController controller;
+  CameraController? controller;
   bool isInitialized = false;
 
   @override
@@ -22,10 +22,24 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<void> requestCameraPermission() async {
     final status = await Permission.camera.request();
     if (status.isGranted) {
-      print('permission granted');
+      print('Permission granted');
       _initializeCamera();
+    } else if (status.isPermanentlyDenied) {
+      print("Permission permanently denied. Redirecting to app settings...");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Camera permission is required. Please enable it in settings."),
+          action: SnackBarAction(
+            label: 'Open Settings',
+            onPressed: () {
+              openAppSettings();
+            },
+          ),
+        ),
+      );
     } else {
-      print("Camera permission denied");
+      print("Permission denied");
+      print(status);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Camera permission denied")));
     }
   }
@@ -35,7 +49,7 @@ class _CameraScreenState extends State<CameraScreen> {
       cameras = await availableCameras();
       if (cameras.isNotEmpty) {
         controller = CameraController(cameras[0], ResolutionPreset.high);
-        await controller.initialize();
+        await controller!.initialize();
         setState(() {
           isInitialized = true;
         });
@@ -48,9 +62,9 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _captureImage() async {
+    if (controller == null || !controller!.value.isInitialized) return;
     try {
-      if (!controller.value.isInitialized) return;
-      final image = await controller.takePicture();
+      final image = await controller!.takePicture();
       print('Captured image: ${image.path}');
       _processImage(image.path);
     } catch (e) {
@@ -65,7 +79,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
-    controller.dispose();
+    // Dispose controller if it is not null and initialized
+    controller?.dispose();
     super.dispose();
   }
 
@@ -73,24 +88,24 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Camera')),
-      body: isInitialized
-          ? Stack(
-              children: [
-                CameraPreview(controller),
-                Positioned(
-                  bottom: 20,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: ElevatedButton(
-                      onPressed: _captureImage,
-                      child: const Text('Capture Image'),
-                    ),
+      body: isInitialized && controller != null
+        ? Stack(
+            children: [
+              CameraPreview(controller!),
+              Positioned(
+                bottom: 20,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: ElevatedButton(
+                    onPressed: _captureImage,
+                    child: const Text('Capture Image'),
                   ),
                 ),
-              ],
-            )
-          : const Center(child: CircularProgressIndicator()),
+              ),
+            ],
+          )
+        : const Center(child: CircularProgressIndicator()),
     );
   }
 }
