@@ -159,7 +159,7 @@ class _RunnersManagementState extends State<RunnersManagement> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(title: const Text('Runners Management')),
+      appBar: AppBar(title: const Text('Runners Management')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

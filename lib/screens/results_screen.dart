@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:race_timing_app/utils/time_formatter.dart';
 import 'package:race_timing_app/utils/csv_utils.dart';
@@ -22,7 +24,7 @@ class ResultsScreenState extends State<ResultsScreen> {
         : _calculateOverallTeamResults();
 
     return Scaffold(
-      // appBar: AppBar(title: const Text('Team Results')),
+      appBar: AppBar(title: const Text('Team Results')),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -30,10 +32,13 @@ class ResultsScreenState extends State<ResultsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header Section
-              const SizedBox(height: 20), // Adds space from the top of the screen
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
                 children: [
+                  // const Text(
+                  //   'Team Results',
+                  //   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  // ),
                   Row(
                     children: [
                       const Text('Head-to-Head View'),
@@ -49,8 +54,8 @@ class ResultsScreenState extends State<ResultsScreen> {
                   ),
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      double buttonWidth = constraints.maxWidth * 0.5; // 50% of the available width
-                      double fontSize = constraints.maxWidth * 0.04; // Scalable font size based on width
+                      double buttonWidth = min(constraints.maxWidth * 0.5, 200); // 50% of the available width
+                      double fontSize = buttonWidth * 0.08; // Scalable font size based on width
                       return ElevatedButton.icon(
                         onPressed: () => downloadCsv(teamResults, individualResults),
                         icon: const Icon(Icons.download),
@@ -68,6 +73,29 @@ class ResultsScreenState extends State<ResultsScreen> {
                   ),
                 ],
               ),
+
+              // Download Button
+              // const SizedBox(height: 24),
+              // LayoutBuilder(
+              //   builder: (context, constraints) {
+              //     double buttonWidth = min(constraints.maxWidth * 0.5, 200); // 50% of the available width
+              //     double fontSize = buttonWidth * 0.08; // Scalable font size based on width
+              //     return ElevatedButton.icon(
+              //       onPressed: () => downloadCsv(teamResults, individualResults),
+              //       icon: const Icon(Icons.download),
+              //       label: Text(
+              //         'Download CSV Results',
+              //         style: TextStyle(fontSize: fontSize),
+              //       ),
+              //       style: ElevatedButton.styleFrom(
+              //         minimumSize: Size(200, 60), // Minimum width of 200 and height of 60
+              //         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+              //         fixedSize: Size(buttonWidth, 60), // Set width proportional to screen size
+              //       ),
+              //     );
+              //   },
+              // ),
+
               
               const SizedBox(height: 16),
 

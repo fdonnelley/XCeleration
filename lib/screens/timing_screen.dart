@@ -366,7 +366,7 @@ class _TimingScreenState extends State<TimingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(title: const Text('Race Timing')),
+      appBar: AppBar(title: const Text('Race Timing')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
