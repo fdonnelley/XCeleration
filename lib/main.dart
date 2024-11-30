@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/timing_screen.dart';
 import 'runners_management.dart';
+import 'screens/bib_number_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,44 +15,40 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Race Timing App',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.grey[100],
+      ),
       home: const HomeScreen(),
     );
   }
 }
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
-
-  final List<Widget> _pages = [
-    const TimingScreen(),
-    const RunnersManagement(),
-  ];
-
-  void _onNavTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onNavTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.timer), label: 'Timing'),
-          BottomNavigationBarItem(icon: Icon(Icons.group), label: 'Runners'),
-        ],
+    return DefaultTabController(
+      length: 3, // Number of tabs
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Race Timing App'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.timer), text: 'Time a Race'),
+              Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
+              Tab(icon: Icon(Icons.person), text: 'Runner Data'),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            TimingScreen(),
+            BibNumberScreen(),
+            RunnersManagement(),
+          ],
+        ),
       ),
     );
   }
