@@ -84,7 +84,7 @@ class _RunnersManagementState extends State<RunnersManagement> {
               _buildTextField(_nameController, 'Full Name'),
               _buildTextField(_gradeController, 'Grade', isNumeric: true),
               _buildTextField(_schoolController, 'School'),
-              _buildTextField(_bibController, 'Bib Number'),
+              _buildTextField(_bibController, 'Bib Number', isNumeric: true),
             ],
           ),
         ),
@@ -110,7 +110,7 @@ class _RunnersManagementState extends State<RunnersManagement> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildTextField(_deleteBibController, 'Enter Bib Number'),
+            _buildTextField(_deleteBibController, 'Enter Bib Number', isNumeric: true),
           ],
         ),
         actions: [
@@ -159,7 +159,7 @@ class _RunnersManagementState extends State<RunnersManagement> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Runners Management')),
+      // appBar: AppBar(title: const Text('Runners Management')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -167,20 +167,86 @@ class _RunnersManagementState extends State<RunnersManagement> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(
-                  onPressed: () => _showAddRunnerPopup(context),
-                  child: const Text('Add Runner'),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(5.0), // Padding around the button
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        double fontSize = constraints.maxWidth * 0.12; // Scalable font size
+                        return ElevatedButton(
+                          onPressed: () => _showAddRunnerPopup(context),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size(0, constraints.maxWidth * 0.5), // Button height scales
+                            padding: EdgeInsets.symmetric(vertical: 5.0),
+                          ),
+                          child: Text('Add Runner',
+                            style: TextStyle(fontSize: fontSize),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-                ElevatedButton(
-                  onPressed: () => _showDeleteRunnerPopup(context),
-                  child: const Text('Delete Runner'),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(5.0), // Padding around the button
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        double fontSize = constraints.maxWidth * 0.12; // Scalable font size
+                        return ElevatedButton(
+                          onPressed: () => _showDeleteRunnerPopup(context),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size(0, constraints.maxWidth * 0.5), // Button height scales
+                            padding: EdgeInsets.symmetric(vertical: 5.0),
+                          ),
+                          child: Text('Delete Runner',
+                            style: TextStyle(fontSize: fontSize),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-                ElevatedButton(
-                  onPressed: _loadSpreadsheet,
-                  child: const Text('Load Spreadsheet'),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(5.0), // Padding around the button
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        double fontSize = constraints.maxWidth * 0.10;
+                        return ElevatedButton(
+                          onPressed: _loadSpreadsheet,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size(0, constraints.maxWidth * 0.5),
+                            padding: EdgeInsets.symmetric(vertical: 5.0, horizontal: 5.0),
+                          ),
+                          child: Text(
+                            'Load Spreadsheet',
+                            style: TextStyle(fontSize: fontSize),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            //   children: [
+            //     ElevatedButton(
+            //       onPressed: () => _showAddRunnerPopup(context),
+            //       child: const Text('Add Runner'),
+            //     ),
+            //     ElevatedButton(
+            //       onPressed: () => _showDeleteRunnerPopup(context),
+            //       child: const Text('Delete Runner'),
+            //     ),
+            //     ElevatedButton(
+            //       onPressed: _loadSpreadsheet,
+            //       child: const Text('Load Spreadsheet'),
+            //     ),
+            //   ],
+            // ),
             const SizedBox(height: 20),
             Expanded(
               child: ListView.builder(

@@ -168,7 +168,24 @@ class _TimingScreenState extends State<TimingScreen> {
   }
 
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Error'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the popup
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
   }
 
 
@@ -303,14 +320,40 @@ class _TimingScreenState extends State<TimingScreen> {
   // }
 
   void _navigateToResults() {
-    // Navigate to the results page
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ResultsScreen(runners: _records),
-      ),
-    );
+    // Check if all runners have a non-null bib number
+    bool allRunnersHaveBibNumbers = _records.every((runner) => runner['bib_number'] != null);
+
+    if (allRunnersHaveBibNumbers) {
+      // Navigate to the results page
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResultsScreen(runners: _records),
+        ),
+      );
+    } else {
+      // Show a popup error if any bib number is null
+      _showErrorMessage('All runners must have a bib number assigned before proceeding.');
+      // showDialog(
+      //   context: context,
+      //   builder: (BuildContext context) {
+      //     return AlertDialog(
+      //       title: Text('Error'),
+      //       content: Text('All runners must have a bib number assigned before proceeding.'),
+      //       actions: [
+      //         TextButton(
+      //           onPressed: () {
+      //             Navigator.of(context).pop(); // Close the popup
+      //           },
+      //           child: Text('OK'),
+      //         ),
+      //       ],
+      //     );
+      //   },
+      // );
+    }
   }
+
 
   @override
   void dispose() {
@@ -331,33 +374,75 @@ class _TimingScreenState extends State<TimingScreen> {
           children: [
             // Buttons for Race Control
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(
-                  onPressed: _startTime == null ? _startRace : _stopRace,
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0), // Padding around the button
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        double fontSize = constraints.maxWidth * 0.12; // Scalable font size
+                        return ElevatedButton(
+                          onPressed: _startTime == null ? _startRace : _stopRace,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size(0, constraints.maxWidth * 0.5), // Button height scales
+                          ),
+                          child: Text(
+                            _startTime == null ? 'Start Race' : 'Stop Race',
+                            style: TextStyle(fontSize: fontSize),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  child: Text(_startTime == null ? 'Start Race' : 'Stop Race', style: TextStyle(fontSize: 20)),
                 ),
                 if ((_startTime == null && _records.isEmpty) || (_startTime != null))
-                  ElevatedButton(
-                    onPressed: _startTime != null ? _logTime : null,
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0), // Padding around the button
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          double fontSize = constraints.maxWidth * 0.12;
+                          return ElevatedButton(
+                            onPressed: _startTime != null ? _logTime : null,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: Size(0, constraints.maxWidth * 0.5),
+                            ),
+                            child: Text(
+                              'Log Time',
+                              style: TextStyle(fontSize: fontSize),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                    child: const Text('Log Time', style: TextStyle(fontSize: 20)),
                   ),
                 if (_startTime == null && _records.isNotEmpty)
-                  ElevatedButton(
-                    onPressed: _scanQRCode,
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0), // Padding around the button
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          double fontSize = constraints.maxWidth * 0.09;
+                          return ElevatedButton(
+                            onPressed: _scanQRCode,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: Size(0, constraints.maxWidth * 0.5),
+                            ),
+                            child: Text(
+                              'Scan QR Code',
+                              style: TextStyle(fontSize: fontSize),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                    child: const Text('Scan QR Code', style: TextStyle(fontSize: 20)),
                   ),
               ],
             ),
+
+
+
             // const SizedBox(height: 16),
             // ElevatedButton.icon(
             //   onPressed: _navigateToBibNumbers,
