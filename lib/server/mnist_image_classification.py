@@ -16,19 +16,13 @@ import matplotlib.pyplot as plt
 import keras
 from keras.models import Sequential, load_model
 from keras.layers import Input, Dense, Conv2D, Dropout, Flatten, MaxPooling2D, BatchNormalization
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import CategoricalCrossentropy
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 import cv2
 from keras.datasets import mnist
-from IPython.display import clear_output
 import os
-
-from google.colab import drive
-# drive.mount('/content/drive')
 
 """# Data"""
 
@@ -126,7 +120,6 @@ for i in range(len(x_train)):
     augmented_images.extend(augmented_x_batch)
     augmented_labels.extend(augmented_y_batch)
     if(i+1)%1000 == 0:
-      clear_output()
       print(f'{round((i+1)/len(x_train), 3)}% of data augmented')
 
 # Convert lists to NumPy arrays
@@ -202,7 +195,7 @@ model.add(Dense(10, activation="softmax"))
 # Compile Model
 model.compile(optimizer=Adam(learning_rate=0.001), loss=CategoricalCrossentropy(), metrics=['accuracy'])
 
-model = load_model("/content/drive/MyDrive/MNIST Model/models/mnist_model.keras")
+model = load_model("/models/mnist_model.keras")
 # model = load_model("/content/drive/MyDrive/MNIST Model/checkpoints/checkpoint_1.model.keras")
 print(model.summary())
 
@@ -501,10 +494,3 @@ print('Incorrect predictions percentage:', round(incorrect_predictions / (correc
 print('Correct predictions percentage:', round(correct_predictions / (correct_predictions + incorrect_predictions), 2))
 print('Incorrect predictions:', incorrect_predictions)
 print('Correct predictions:', correct_predictions)
-
-"""# TODO
-
-*   make a pipeline to pass images thorugh to get digits
-*   return both bounding boxes first, then digits
-*   color the bounding boxes depending on certainty
-"""
