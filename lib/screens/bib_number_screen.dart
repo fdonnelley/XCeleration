@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 // import 'camera_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:convert';
+import '../server/function.dart';
 // import 'package:camera/camera.dart';
 // import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 // import 'package:race_timing_app/bluetooth_service.dart' as app_bluetooth;
@@ -238,6 +239,12 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
 
   String _processImageToExtractNumber(XFile image) {
+    try {
+      predict_digits_from_picture(image);
+    }
+    catch (e) {
+      print('error proccessing image: $e');
+    }
     // Placeholder function for OCR
     // You can integrate a package like Tesseract OCR or Google's ML Kit here
     return "123"; // Replace this with the actual extracted number
