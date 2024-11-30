@@ -44,102 +44,6 @@ def visualize_mnist_image(image, title='MNIST Image'):
   plt.show()
   # [0, :, :, 0] - to undo reshaped image
 
-num_classes = 10
-f, ax = plt.subplots(1, num_classes, figsize=(20, 20))
-
-for i in range(0, num_classes):
-  sample = x_train[y_train == i][5]
-  ax[i].imshow(sample, cmap='gray')
-  ax[i].set_title("Label: {}".format(i), fontsize=16)
-
-for i in range(10):
-  print(y_train[i])
-
-"""# Pre-Process Data"""
-
-num_digits = 10
-def pre_preocess_mnist_data(x_data, y_data):
-  def convert_to_binary(image):
-    blurred = cv2.GaussianBlur(image, (3, 3), 0)
-    binary_full = cv2.adaptiveThreshold(
-      image,
-      255,
-      cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-      cv2.THRESH_BINARY,
-      blockSize=11,
-      C=-4
-    )
-    return binary_full
-  pre_processed_x_data = np.array(list(map(convert_to_binary, x_data)))
-  pre_processed_x_data = pre_processed_x_data.reshape(pre_processed_x_data.shape[0], 28, 28, 1)
-  pre_processed_y_data = keras.utils.to_categorical(y_data, num_digits)
-  return pre_processed_x_data, pre_processed_y_data
-
-x_train, y_train = pre_preocess_mnist_data(x_train, y_train)
-x_test, y_test = pre_preocess_mnist_data(x_test, y_test)
-
-print(x_train.shape)
-print(y_train.shape)
-print(x_test.shape)
-print(y_test.shape)
-
-"""# Augment Data"""
-
-black_noise_percentage = 0.01
-white_noise_percentage = 0.015
-
-def add_noise(image):
-  salt_pepper_mask = np.random.random(image.shape)
-  image_with_noise = image.copy()
-
-  # Salt noise (white pixels)
-  image_with_noise[salt_pepper_mask < white_noise_percentage] = 255
-
-  # Pepper noise (black pixels)
-  image_with_noise[salt_pepper_mask > 1 - black_noise_percentage] = 0
-  return image_with_noise
-
-x_train = np.array(list(map(add_noise, x_train)))
-x_test = np.array(list(map(add_noise, x_test)))
-
-datagen = ImageDataGenerator(
-  rotation_range = 5,  # randomly rotate images in the range (degrees, 0 to 180)
-  zoom_range = 0.075, # Randomly zoom image
-  width_shift_range = 0.075,  # randomly shift images horizontally (fraction of total width)
-  height_shift_range = 0.075,  # randomly shift images vertically (fraction of total height)
-)
-
-times_to_augment = 8
-
-# x_batch = next(datagen.flow(x_train[:8], y_train[:8], batch_size=times_to_augment, shuffle=False))[0]
-# for image in x_batch:
-#   visualize_mnist_image(image[:, :, 0])
-
-augmented_images = []
-augmented_labels = []
-
-augmented_batch_gen = datagen.flow(x_train, y_train, batch_size=times_to_augment, shuffle=False)
-for i in range(len(x_train)):
-    augmented_x_batch, augmented_y_batch = next(augmented_batch_gen)
-    augmented_images.extend(augmented_x_batch)
-    augmented_labels.extend(augmented_y_batch)
-    if(i+1)%1000 == 0:
-      clear_output()
-      print(f'{round((i+1)/len(x_train), 3)}% of data augmented')
-
-# Convert lists to NumPy arrays
-augmented_images = np.array(augmented_images)
-augmented_labels = np.array(augmented_labels)
-
-# Append augmented data to the original data
-x_train = np.concatenate((x_train, augmented_images))
-y_train = np.concatenate((y_train, augmented_labels))
-
-print(augmented_images.shape)
-print(augmented_labels.shape)
-print(x_train.shape)
-print(y_train.shape)
-
 """# Prepare Data"""
 
 def proccess_data(data):
@@ -156,94 +60,6 @@ def proccess_data(data):
 #   return data
 
 # convert from integers to floats
-x_train = proccess_data(x_train)
-x_test = proccess_data(x_test)
-
-"""# Create Model - Fully Connected Neural Network"""
-
-model = Sequential()
-
-# Input Layer
-model.add(Input(shape=(28, 28, 1)))
-
-# First Block
-model.add(Conv2D(32, kernel_size=(3,3), kernel_initializer='he_uniform', activation='relu'))
-model.add(BatchNormalization())
-model.add(MaxPooling2D((2,2)))
-
-# Second Block
-model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same', kernel_initializer='he_uniform'))
-model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same', kernel_initializer='he_uniform'))
-model.add(BatchNormalization())
-model.add(MaxPooling2D(pool_size=(2,2)))
-model.add(Dropout(0.25))
-
-# Third Block
-model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same', kernel_initializer='he_uniform'))
-model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same', kernel_initializer='he_uniform'))
-model.add(BatchNormalization())
-model.add(MaxPooling2D((2,2)))
-model.add(Dropout(0.25))
-
-# Fully Connected Layers
-model.add(Flatten())
-model.add(Dense(256, activation="relu", kernel_initializer='he_uniform'))
-model.add(BatchNormalization())
-model.add(Dropout(0.25))
-model.add(Dense(128, activation="relu", kernel_initializer='he_uniform'))
-model.add(BatchNormalization())
-model.add(Dropout(0.25))
-
-# Output Layer
-model.add(Dense(10, activation="softmax"))
-
-# Compile Model
-model.compile(optimizer=Adam(learning_rate=0.001), loss=CategoricalCrossentropy(), metrics=['accuracy'])
-
-model = load_model("/content/drive/MyDrive/MNIST Model/models/mnist_model.keras")
-# model = load_model("/content/drive/MyDrive/MNIST Model/checkpoints/checkpoint_1.model.keras")
-print(model.summary())
-
-"""# Train Model"""
-
-checkpoint_path = "/content/drive/MyDrive/MNIST Model/checkpoints/checkpoint_1.model.keras"
-checkpoint_callback = ModelCheckpoint(
-    filepath=checkpoint_path,
-    monitor='val_loss',
-    save_best_only=True,
-    save_weights_only=False,
-    verbose=1
-)
-
-early_stopping = EarlyStopping(
-    monitor='val_loss',  # Monitor validation loss
-    patience=5,          # Number of epochs with no improvement to wait before stopping
-    restore_best_weights=True  # Roll back to the best model weights
-)
-
-history = model.fit(x=x_train, y=y_train, batch_size=32, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping, checkpoint_callback])
-
-"""# Evaluate Model"""
-
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('Model loss')
-plt.ylabel('Loss')
-plt.xlabel('Epoch')
-plt.legend(['Train', 'Validation'], loc='upper right')
-plt.show()
-
-plt.plot(history.history['accuracy'])
-plt.plot(history.history['val_accuracy'])
-plt.title('Model accuracy')
-plt.ylabel('Accuracy')
-plt.xlabel('Epoch')
-plt.legend(['Train', 'Validation'], loc='lower right')
-plt.show()
-
-"""# Save Model"""
-
-model.save("/content/drive/MyDrive/MNIST Model/models/mnist_model.keras")
 
 """# Digit Prediction"""
 
@@ -499,14 +315,14 @@ def process_image(image, debug=False):
 #     else:
 #       incorrect_predictions += 1
 
-print('Incorrect predictions percentage:', round(incorrect_predictions / (correct_predictions + incorrect_predictions), 2))
-print('Correct predictions percentage:', round(correct_predictions / (correct_predictions + incorrect_predictions), 2))
-print('Incorrect predictions:', incorrect_predictions)
-print('Correct predictions:', correct_predictions)
+# print('Incorrect predictions percentage:', round(incorrect_predictions / (correct_predictions + incorrect_predictions), 2))
+# print('Correct predictions percentage:', round(correct_predictions / (correct_predictions + incorrect_predictions), 2))
+# print('Incorrect predictions:', incorrect_predictions)
+# print('Correct predictions:', correct_predictions)
 
-"""# TODO
+def predict_digits_from_picture(cv2_image):
+  digit_images = process_image(cv2_image, debug=False)
+  return predict_digits_from_images(digit_images, debug=False)
 
-*   make a pipeline to pass images thorugh to get digits
-*   return both bounding boxes first, then digits
-*   color the bounding boxes depending on certainty
-"""
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
