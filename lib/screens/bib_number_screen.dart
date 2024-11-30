@@ -82,7 +82,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
     if (image != null) {
       // Placeholder: Process the image to extract numbers
-      String extractedBib = _processImageToExtractNumber(image);
+      String extractedBib = await _processImageToExtractNumber(image);
 
       // Update the text field and record with the extracted number
       setState(() {
@@ -238,9 +238,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   // }
 
 
-  String _processImageToExtractNumber(XFile image) {
+  Future<String> _processImageToExtractNumber(XFile image) async {
     try {
-      predict_digits_from_picture(image);
+      return await predict_digits_from_picture(image);
     }
     catch (e) {
       print('error proccessing image: $e');
