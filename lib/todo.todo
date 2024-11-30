@@ -2,6 +2,9 @@ connect phones together using bluetooth
 use a fallback qr code for data transfer
 add picture taking to record bib numbers with teo's model
 make graphics look better
+make it still work with fewer runners
+make the buttons size have a cap
+make it so you can go back to timing page from results
 make it so people can click volume button or press a key to log time instead of clicking
 
 explaination 'I would have one phone click some button that is a start race with collaborator or something and it would connect via bluetooth to another persons phone. 
