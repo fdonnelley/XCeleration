@@ -15,20 +15,20 @@ import matplotlib.pyplot as plt
 # %matplotlib inline
 import keras
 from keras.models import Sequential, load_model
-from keras.layers import Dense, Conv2D, Dropout, Flatten, MaxPooling2D, BatchNormalization
+from keras.layers import Input, Dense, Conv2D, Dropout, Flatten, MaxPooling2D, BatchNormalization
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from keras.preprocessing.image import load_img
-from keras.preprocessing.image import img_to_array
-from keras.callbacks import ModelCheckpoint
+from keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.optimizers import Adam
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 import cv2
 from keras.datasets import mnist
 from IPython.display import clear_output
-from tensorflow.keras.callbacks import EarlyStopping
+import os
 
 from google.colab import drive
-drive.mount('/content/drive')
+# drive.mount('/content/drive')
 
 """# Data"""
 
@@ -101,8 +101,10 @@ def add_noise(image):
   image_with_noise[salt_pepper_mask > 1 - black_noise_percentage] = 0
   return image_with_noise
 
+x_train = np.array(list(map(add_noise, x_train)))
+x_test = np.array(list(map(add_noise, x_test)))
+
 datagen = ImageDataGenerator(
-  preprocessing_function=add_noise,
   rotation_range = 5,  # randomly rotate images in the range (degrees, 0 to 180)
   zoom_range = 0.075, # Randomly zoom image
   width_shift_range = 0.075,  # randomly shift images horizontally (fraction of total width)
@@ -163,57 +165,45 @@ x_test = proccess_data(x_test)
 
 model = Sequential()
 
-model.add(Conv2D(16, kernel_size=(3,3), kernel_initializer='he_uniform', input_shape=(28,28,1)))
+# Input Layer
+model.add(Input(shape=(28, 28, 1)))
+
+# First Block
+model.add(Conv2D(32, kernel_size=(3,3), kernel_initializer='he_uniform', activation='relu'))
 model.add(BatchNormalization())
 model.add(MaxPooling2D((2,2)))
+
+# Second Block
 model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same', kernel_initializer='he_uniform'))
-model.add(Conv2D(64, kernel_size=(5, 5), activation='relu', padding='same', kernel_initializer='he_uniform'))
+model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same', kernel_initializer='he_uniform'))
 model.add(BatchNormalization())
 model.add(MaxPooling2D(pool_size=(2,2)))
 model.add(Dropout(0.25))
+
+# Third Block
 model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same', kernel_initializer='he_uniform'))
 model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same', kernel_initializer='he_uniform'))
 model.add(BatchNormalization())
 model.add(MaxPooling2D((2,2)))
 model.add(Dropout(0.25))
+
+# Fully Connected Layers
 model.add(Flatten())
-model.add(Dense(128, activation="relu"), kernel_initializer='he_uniform')
+model.add(Dense(256, activation="relu", kernel_initializer='he_uniform'))
 model.add(BatchNormalization())
-model.add(Dense(128, activation="relu"), kernel_initializer='he_uniform')
+model.add(Dropout(0.25))
+model.add(Dense(128, activation="relu", kernel_initializer='he_uniform'))
 model.add(BatchNormalization())
-model.add(Dropout(0.15))
-model.add(Dense(10, activation="softmax")) #best - 99.5%?
+model.add(Dropout(0.25))
 
-# model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+# Output Layer
+model.add(Dense(10, activation="softmax"))
 
-# model = Sequential()
+# Compile Model
+model.compile(optimizer=Adam(learning_rate=0.001), loss=CategoricalCrossentropy(), metrics=['accuracy'])
 
-# model.add(Conv2D(32, kernel_size = 3, activation='relu', input_shape = (28, 28, 1)))
-# model.add(BatchNormalization())
-# model.add(Conv2D(32, kernel_size = 3, activation='relu'))
-# model.add(BatchNormalization())
-# model.add(Conv2D(32, kernel_size = 5, strides=2, padding='same', activation='relu'))
-# model.add(BatchNormalization())
-# model.add(Dropout(0.4))
-
-# model.add(Conv2D(64, kernel_size = 3, activation='relu'))
-# model.add(BatchNormalization())
-# model.add(Conv2D(64, kernel_size = 3, activation='relu'))
-# model.add(BatchNormalization())
-# model.add(Conv2D(64, kernel_size = 5, strides=2, padding='same', activation='relu'))
-# model.add(BatchNormalization())
-# model.add(Dropout(0.4))
-
-# model.add(Conv2D(128, kernel_size = 4, activation='relu'))
-# model.add(BatchNormalization())
-# model.add(Flatten())
-# model.add(Dropout(0.4))
-# model.add(Dense(10, activation='softmax'))
-
-# model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
-
-# model = load_model("/content/drive/MyDrive/MNIST Model/mnist_model.keras")
-model = load_model("/content/drive/MyDrive/MNIST Model/checkpoints/checkpoint_1.model.keras")
+model = load_model("/content/drive/MyDrive/MNIST Model/models/mnist_model.keras")
+# model = load_model("/content/drive/MyDrive/MNIST Model/checkpoints/checkpoint_1.model.keras")
 print(model.summary())
 
 """# Train Model"""
@@ -266,7 +256,7 @@ def resize_image(image_array):
     new_width = int(aspect_ratio * new_height)
   else:
     new_width = 28
-    new_height = int(aspect_ratio * new_width)
+    new_height = int(new_width / aspect_ratio)
   resized_image = cv2.resize(image_array, (new_width, new_height))
 
   # Calculate padding to make the image square (28x28)
@@ -285,51 +275,28 @@ def resize_image(image_array):
   padded_image = np.pad(resized_image, ((pad_height_top, pad_height_bottom), (pad_width_left, pad_width_right)), constant_values=0)
   return padded_image
 
-def predict_digit_from_array(image_array):
-  predicted_value = model.predict(image_array)
-  print('predicted_value:', predicted_value)
-  digit = np.argmax(predicted_value)
-  return digit
+def predict_digits_from_arrays(image_arrays):
+  predictions = model.predict(image_arrays)
+  digits = np.argmax(predictions, axis=1)
+  confidences = np.max(predictions, axis=1)
+  return digits, confidences
 
-def predict_digit_from_image(image):
-  resized_image = resize_image(image)
-  # visualize_mnist_image(image)
-  visualize_mnist_image(resized_image)
-  proccessed_image = proccess_data(resized_image)
-  proccessed_image_array = proccessed_image.reshape(1, 28, 28, 1)
-  digit = predict_digit_from_array(proccessed_image_array)
-  return digit
+def predict_digits_from_images(image, debug=False):
+  resized_images = np.array(list(map(resize_image, image)))
+  if debug:
+    for resized_image in resized_images:
+      visualize_mnist_image(resized_image)
+  proccessed_images = proccess_data(resized_images)
+  proccessed_image_arrays = proccessed_images.reshape(proccessed_images.shape[0], 28, 28, 1)
+  digits, confidences = predict_digits_from_arrays(proccessed_image_arrays)
+  return digits, confidences
 
 """# Digit Seperation"""
 
-def get_avg_val(row):
-  avg_val = 0
-  for box in row:
-    avg_val += box[1]
-  return avg_val / len(row)
-
-def sort_digits(digit_bounding_boxes):
-
+def sort_bounding_boxes(bounding_boxes):
   # Sort bounding boxes by y-coordinate
-  digit_bounding_boxes.sort(key=lambda x: x[1])
-  return digit_bounding_boxes
-  # # Group bounding boxes into rows
-  # rows = []  # will contain lists of bounding boxes, one list for each row
-  # current_row = []
-  # row_tolerance = 50 # change this later!!!!!!!!!!!!!!!!
-  # for i, bounding_box in enumerate(digit_bounding_boxes):
-  #     # If it's the first contour or the contour is on the same row...
-  #     if i == 0 or abs(bounding_box[1] - get_avg_val(current_row)) <= row_tolerance:
-  #         current_row.append(bounding_box)
-  #     else:
-  #         # Start a new row
-  #         rows.append(sorted(current_row, key=lambda x: x[0]))
-  #         current_row = [bounding_box]
-
-  # # Don't forget to add the last row if it's not empty
-  # if current_row:
-  #     rows.append(sorted(current_row, key=lambda x: x[0]))
-  # return rows
+  bounding_boxes.sort(key=lambda x: x[1])
+  return bounding_boxes
 
 def pre_process_image(image, debug=False):
   gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -371,9 +338,9 @@ def pre_process_image(image, debug=False):
   return binary_full_cleaned
 
 def filter_contour(contour, pre_processed_image, debug=False):
-  min_contour_area = 700
+  min_contour_area = 800
   max_contour_area = pre_processed_image.shape[0] / 3 * pre_processed_image.shape[1] / 3
-  min_contour_aspect_ratio = 1.2
+  min_contour_aspect_ratio = 0.8
   max_contour_aspect_ratio = 8.0
   contour_margin = 20
   contour_margins_max_white_threshold = 0.09
@@ -415,35 +382,38 @@ def filter_contour(contour, pre_processed_image, debug=False):
         return True
   return False
 
-def remove_outlier_bounding_boxes(contours, debug=False):
-  if validate_contour_group(contours):
-    return contours
-  grouped_contours = contours.copy()
-  for contour in contours:
-    new_grouped_contours = [grouped_contour for grouped_contour in grouped_contours if grouped_contour != contour]
-    if validate_contour_group(new_grouped_contours):
-      if debug:
-        print('removed outlier')
-      return new_grouped_contours
-  return grouped_contours
+def select_and_sort_bounding_boxes(bounding_boxes, debug=False):
+  sorted_bounding_boxes = sort_bounding_boxes(bounding_boxes)
+  if validate_grouped_bounding_boxes(sorted_bounding_boxes):
+    return sorted_bounding_boxes
+  print('selecting bounding boxes')
+  remaining_sorted_bounding_boxes = sorted_bounding_boxes.copy()
+  bounding_box_groups = []
+  while remaining_sorted_bounding_boxes:
+    bounding_box_group = [remaining_sorted_bounding_boxes.pop(0)]
+    for bounding_box in remaining_sorted_bounding_boxes:
+      if validate_grouped_bounding_boxes(bounding_box_group + [bounding_box]):
+        bounding_box_group.append(bounding_box)
+    bounding_box_groups.append(bounding_box_group)
+  return max(bounding_box_groups, key=len)
 
-def validate_contour_group(group_contours, area_threshold=0.5):
-    if len(group_contours) == 1:
+def validate_grouped_bounding_boxes(bounding_box_group, area_threshold=0.5):
+    if len(bounding_box_group) == 1:
         return True
 
     # Calculate sum of individual contour areas
-    total_contour_area = sum([contour[2] * contour[3] for contour in group_contours])
+    total_bounding_box_area = sum([bounding_box[2] * bounding_box[3] for bounding_box in bounding_box_group])
 
-    min_contour_x = min(contour[0] for contour in group_contours)
-    min_contour_y = min(contour[1] for contour in group_contours)
-    max_contour_x = max(contour[0] + contour[2] for contour in group_contours)
-    max_contour_y = max(contour[1] + contour[3] for contour in group_contours)
+    min_bounding_box_x = min(bounding_box[0] for bounding_box in bounding_box_group)
+    min_bounding_box_y = min(bounding_box[1] for bounding_box in bounding_box_group)
+    max_bounding_box_x = max(bounding_box[0] + bounding_box[2] for bounding_box in bounding_box_group)
+    max_bounding_box_y = max(bounding_box[1] + bounding_box[3] for bounding_box in bounding_box_group)
 
-    contour_bounding_box_area = (max_contour_x - min_contour_x) * (max_contour_y - min_contour_y)
+    total_group_bounding_box_area = (max_bounding_box_x - min_bounding_box_x) * (max_bounding_box_y - min_bounding_box_y)
 
     # Calculate the ratio
-    area_ratio = total_contour_area / contour_bounding_box_area
-    print('area_ratio:', area_ratio)
+    area_ratio = total_bounding_box_area / total_group_bounding_box_area
+    # print('area_ratio:', area_ratio)
 
     return area_ratio >= area_threshold
 
@@ -452,10 +422,10 @@ def crop_image(image, debug=False):
   if debug:
     blurred_image =  cv2.cvtColor(image, cv2.COLOR_BGR2RGB).copy()
     # Apply blur to left side
-    blurred_image[:, :crop_width] = cv2.GaussianBlur(image[:, :crop_width], (49, 49), 0)
+    blurred_image[:, :crop_width] = cv2.blur(image[:, :crop_width], (49, 49), 0)
 
     # Apply blur to right side
-    blurred_image[:, -crop_width:] = cv2.GaussianBlur(image[:, -crop_width:], (49, 49), 0)
+    blurred_image[:, -crop_width:] = cv2.blur(image[:, -crop_width:], (49, 49), 0)
     plt.figure(figsize=(10, 5))
     plt.title('Cropped Image')
     plt.imshow(blurred_image)
@@ -476,8 +446,7 @@ def process_image(image_path, debug=False):
       if filter_contour(contour, pre_processed_image, debug=debug):
         x, y, w, h = cv2.boundingRect(contour)
         filtered_bounding_boxes.append((x, y, w, h))
-    digit_bounding_boxes = remove_outlier_bounding_boxes(filtered_bounding_boxes, debug=debug)
-    digit_bounding_boxes = sort_digits(digit_bounding_boxes)
+    digit_bounding_boxes = select_and_sort_bounding_boxes(filtered_bounding_boxes, debug=debug)
     if debug:
       contour_visualisation_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB).copy()
       for digit_bounding_box in digit_bounding_boxes:
@@ -512,12 +481,26 @@ def process_image(image_path, debug=False):
         plt.show()
     return digit_images
 
-digits = process_image('/content/drive/MyDrive/MNIST Model/close_up_running_id_photo.png', debug=True)
-
 """# Image Prediction"""
 
-for digit in digits:
-  print(predict_digit_from_image(digit))
+image_dir = '/content/drive/MyDrive/MNIST Model/testing_images'
+correct_predictions = 0
+incorrect_predictions = 0
+for filename in os.listdir(image_dir):
+  filepath = os.path.join(image_dir, filename)
+  if os.path.isfile(filepath):
+    actual_digits = np.array(list(map(int, list(filename[:-7]))))
+    digit_images = process_image(filepath, debug=False)
+    predicted_digits, confidences = predict_digits_from_images(digit_images, debug=False)
+    if np.array_equal(actual_digits, predicted_digits):
+      correct_predictions += 1
+    else:
+      incorrect_predictions += 1
+
+print('Incorrect predictions percentage:', round(incorrect_predictions / (correct_predictions + incorrect_predictions), 2))
+print('Correct predictions percentage:', round(correct_predictions / (correct_predictions + incorrect_predictions), 2))
+print('Incorrect predictions:', incorrect_predictions)
+print('Correct predictions:', correct_predictions)
 
 """# TODO
 
