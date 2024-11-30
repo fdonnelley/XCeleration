@@ -31,8 +31,17 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 @app.route('/run-predict_digits_from_picture', methods=['POST'])
 def run_function():
-    data = request.json
-    result = predict_digits_from_picture(data['image'])
+    # Get the uploaded file
+    if 'image' not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
+    
+    file = request.files['image']
+    file_bytes = file.read()
+
+    # Convert bytes to an OpenCV image
+    nparr = np.frombuffer(file_bytes, np.uint8)
+    cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    result = predict_digits_from_picture(cv_image)
     return jsonify({"result": result})
 
 """# Visualize Examples"""
