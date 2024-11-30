@@ -240,7 +240,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   Future<String> _processImageToExtractNumber(XFile image) async {
     try {
-      return await predict_digits_from_picture(image);
+      return await predictDigitsFromPicture(image);
     }
     catch (e) {
       print('error proccessing image: $e');

@@ -14,7 +14,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 # %matplotlib inline
 import keras
-from keras.models import load_model
+import tensorflow as tf
+from tensorflow.keras.models import load_model
 # from keras.layers import Input, Dense, Conv2D, Dropout, Flatten, MaxPooling2D, BatchNormalization
 # from sklearn.metrics import confusion_matrix
 import seaborn as sns
@@ -25,7 +26,7 @@ import seaborn as sns
 import cv2
 # from keras.datasets import mnist
 # from IPython.display import clear_output
-# import os
+import os
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -42,7 +43,12 @@ def run_function():
     nparr = np.frombuffer(file_bytes, np.uint8)
     cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     result = predict_digits_from_picture(cv_image)
-    return jsonify({"result": result})
+    numbers_array_str = list(result[0].astype(str))
+    confidences_array_str = list(result[1].astype(str))
+    number = ''.join(numbers_array_str)
+    print("result:", result)
+    print(confidences_array_str, number)
+    return jsonify({"number": number, 'confidences': confidences_array_str})
 
 """# Visualize Examples"""
 
@@ -99,7 +105,9 @@ def resize_image(image_array):
   return padded_image
 
 def predict_digits_from_arrays(image_arrays):
-  model = load_model("/models/mnist_model.keras")
+  model_path = os.path.abspath("lib/server/models/mnist_model.keras")
+  model = load_model(model_path)
+  # model = load_model("models/mnist_model.keras")
   # model = load_model("/content/drive/MyDrive/MNIST Model/checkpoints/checkpoint_1.model.keras")
   print(model.summary())
   predictions = model.predict(image_arrays)
@@ -334,4 +342,4 @@ def predict_digits_from_picture(cv2_image):
   return predict_digits_from_images(digit_images, debug=False)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

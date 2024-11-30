@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart'; // Add this import
 
 
 Future<String> predictDigitsFromPicture(XFile picture) async {
-  final url = Uri.parse('http://127.0.0.1:5000/run-predict_digits_from_picture');
+  final url = Uri.parse('http://192.168.1.121:5001/run-predict_digits_from_picture');
 
   // Create a multipart request
   var request = http.MultipartRequest('POST', url);
@@ -17,8 +17,8 @@ Future<String> predictDigitsFromPicture(XFile picture) async {
   if (response.statusCode == 200) {
     final responseBody = await response.stream.bytesToString();
     final data = jsonDecode(responseBody);
-    print('Result from Python: ${data['result']}');
-    return data['result'];
+    print('Result from Python: $data');
+    return data['number'];
   } else {
     print('Failed to call Python function: ${response.statusCode}');
   }
