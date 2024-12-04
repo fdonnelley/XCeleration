@@ -30,25 +30,39 @@ import os
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+@app.route('/run-get_boxes', methods=['POST'])
+def get_boxes():
+  # Get the uploaded file
+  if 'image' not in request.files:
+      return jsonify({"error": "No image uploaded"}), 400
+  
+  file = request.files['image']
+  file_bytes = file.read()
+
+  # Convert bytes to an OpenCV image
+  nparr = np.frombuffer(file_bytes, np.uint8)
+  cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+
 @app.route('/run-predict_digits_from_picture', methods=['POST'])
 def run_function():
-    # Get the uploaded file
-    if 'image' not in request.files:
-        return jsonify({"error": "No image uploaded"}), 400
-    
-    file = request.files['image']
-    file_bytes = file.read()
+  # Get the uploaded file
+  if 'image' not in request.files:
+      return jsonify({"error": "No image uploaded"}), 400
+  
+  file = request.files['image']
+  file_bytes = file.read()
 
-    # Convert bytes to an OpenCV image
-    nparr = np.frombuffer(file_bytes, np.uint8)
-    cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    result = predict_digits_from_picture(cv_image)
-    numbers_array_str = list(result[0].astype(str))
-    confidences_array_str = list(result[1].astype(str))
-    number = ''.join(numbers_array_str)
-    print("result:", result)
-    print(confidences_array_str, number)
-    return jsonify({"number": number, 'confidences': confidences_array_str})
+  # Convert bytes to an OpenCV image
+  nparr = np.frombuffer(file_bytes, np.uint8)
+  cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+  result = predict_digits_from_picture(cv_image)
+  numbers_array_str = list(result[0].astype(str))
+  confidences_array_str = list(result[1].astype(str))
+  number = ''.join(numbers_array_str)
+  print("result:", result)
+  print(confidences_array_str, number)
+  return jsonify({"number": number, 'confidences': confidences_array_str})
 
 """# Visualize Examples"""
 
