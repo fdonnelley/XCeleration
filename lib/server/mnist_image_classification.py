@@ -29,6 +29,8 @@ import cv2
 import os
 from flask import Flask, request, jsonify
 
+debug = True
+
 app = Flask(__name__)
 @app.route('/run-get_boxes', methods=['POST'])
 def get_boxes():
@@ -42,7 +44,9 @@ def get_boxes():
   # Convert bytes to an OpenCV image
   nparr = np.frombuffer(file_bytes, np.uint8)
   cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-  return get_digit_bounding_boxes(pre_process_image(cv_image))
+  coordinates =  get_digit_bounding_boxes(pre_process_image(cv_image))
+  print('coordinates', coordinates)
+  return jsonify({"coordinates": coordinates})
 
 
 @app.route('/run-predict_digits_from_picture', methods=['POST'])
