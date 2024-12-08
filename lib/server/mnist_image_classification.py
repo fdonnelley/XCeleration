@@ -42,6 +42,7 @@ def get_boxes():
   # Convert bytes to an OpenCV image
   nparr = np.frombuffer(file_bytes, np.uint8)
   cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+  return get_digit_bounding_boxes(pre_process_image(cv_image))
 
 
 @app.route('/run-predict_digits_from_picture', methods=['POST'])
@@ -147,7 +148,7 @@ def sort_bounding_boxes(bounding_boxes):
   return bounding_boxes
 
 def pre_process_image(image, debug=False):
-  gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+  gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
   # Step 1: Initial preprocessing with adaptive thresholding instead of Otsu
   blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -265,70 +266,82 @@ def validate_grouped_bounding_boxes(bounding_box_group, area_threshold=0.5):
 
     return area_ratio >= area_threshold
 
+def blur_image(image, blur_width):
+  blurred_image =  image.copy()
+  # Apply blur to left side
+  blurred_image[:, :blur_width] = cv2.blur(image[:, :blur_width], (49, 49), 0)
+
+  # Apply blur to right side
+  blurred_image[:, -blur_width:] = cv2.blur(image[:, -blur_width:], (49, 49), 0)
+  return blurred_image
+
 def crop_image(image, debug=False):
   crop_width = min(200, image.shape[1]/3)
   if debug:
-    blurred_image =  cv2.cvtColor(image, cv2.COLOR_BGR2RGB).copy()
-    # Apply blur to left side
-    blurred_image[:, :crop_width] = cv2.blur(image[:, :crop_width], (49, 49), 0)
-
-    # Apply blur to right side
-    blurred_image[:, -crop_width:] = cv2.blur(image[:, -crop_width:], (49, 49), 0)
     plt.figure(figsize=(10, 5))
-    plt.title('Cropped Image')
-    plt.imshow(blurred_image)
+    plt.title('Blurred Image to show Crop')
+    plt.imshow(blur_image(image.copy(), crop_width))
     plt.show()
   image = image[:, crop_width: -crop_width]
   return image
 
-def process_image(image, debug=False):
+def get_digit_bounding_boxes(pre_processed_image):
+  # Find Contours
+  contours, _ = cv2.findContours(pre_processed_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+  filtered_bounding_boxes = []
+  for contour in contours:
+    if filter_contour(contour, pre_processed_image, debug=debug):
+      x, y, w, h = cv2.boundingRect(contour)
+      filtered_bounding_boxes.append((x, y, w, h))
+  return select_and_sort_bounding_boxes(filtered_bounding_boxes, debug=debug)
+
+def show_bounding_boxes_on_image(image, digit_bounding_boxes):
+  display_image = image.copy()
+  for digit_bounding_box in digit_bounding_boxes:
+    cv2.rectangle(
+      display_image,
+      (digit_bounding_box[0], digit_bounding_box[1]),
+      (digit_bounding_box[0]+digit_bounding_box[2],
+      digit_bounding_box[1]+digit_bounding_box[3]),
+      (0, 255, 0),
+      3
+    )
+  return display_image
+
+def select_digit_images_from_image(image, digit_bounding_boxes, debug=False):
+  digit_images = []
+  digit_selection_image = image.copy()
+  for digit_bounding_box in digit_bounding_boxes:
+    digit_padding = 5
+    digit_image_min_x = max(digit_bounding_box[0] - digit_padding, 0)
+    digit_image_min_y = max(digit_bounding_box[1] - digit_padding, 0)
+    digit_image_max_x = min(digit_bounding_box[0] + digit_bounding_box[2] + digit_padding, digit_selection_image.shape[1])
+    digit_image_max_y = min(digit_bounding_box[1] + digit_bounding_box[3] + digit_padding, digit_selection_image.shape[0])
+    digit_image = digit_selection_image[digit_image_min_y:digit_image_max_y, digit_image_min_x:digit_image_max_x]
+    digit_images.append(digit_image)
+    if debug:
+      plt.figure(figsize=(4, 2))
+      plt.title('Detected Digit')
+      plt.imshow(digit_image.copy(), cmap='gray')
+      plt.show()
+
+def process_image(image_path, debug=False):
     # Load and convert image
-    # original = cv2.imread(image_path)
-    original = image
+    original = cv2.imread(image_path)
+    original = cv2.cvtColor(original, cv2.COLOR_BGR2RGB)
     cropped_image = crop_image(original, debug=debug)
     pre_processed_image = pre_process_image(cropped_image, debug=debug)
 
-    # Find Contours
-    contours, _ = cv2.findContours(pre_processed_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    filtered_bounding_boxes = []
-    for contour in contours:
-      if filter_contour(contour, pre_processed_image, debug=debug):
-        x, y, w, h = cv2.boundingRect(contour)
-        filtered_bounding_boxes.append((x, y, w, h))
-    digit_bounding_boxes = select_and_sort_bounding_boxes(filtered_bounding_boxes, debug=debug)
+    digit_bounding_boxes = get_digit_bounding_boxes(pre_processed_image)
     if debug:
-      contour_visualisation_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB).copy()
-      for digit_bounding_box in digit_bounding_boxes:
-        cv2.rectangle(
-          contour_visualisation_image,
-          (digit_bounding_box[0], digit_bounding_box[1]),
-          (digit_bounding_box[0]+digit_bounding_box[2],
-          digit_bounding_box[1]+digit_bounding_box[3]),
-          (0, 255, 0),
-          3
-        )
       print(f"Found {len(digit_bounding_boxes)} digits")
+      bounding_box_visualisation_image = show_bounding_boxes_on_image(cropped_image, digit_bounding_boxes)
       plt.figure(figsize=(10, 5))
       plt.title('Detected Digits')
-      plt.imshow(contour_visualisation_image)
+      plt.imshow(bounding_box_visualisation_image)
       plt.show()
 
-    digit_images = []
-    digit_selection_image = pre_processed_image.copy()
-    for digit_bounding_box in digit_bounding_boxes:
-      digit_padding = 5
-      digit_image_min_x = max(digit_bounding_box[0] - digit_padding, 0)
-      digit_image_min_y = max(digit_bounding_box[1] - digit_padding, 0)
-      digit_image_max_x = min(digit_bounding_box[0] + digit_bounding_box[2] + digit_padding, digit_selection_image.shape[1])
-      digit_image_max_y = min(digit_bounding_box[1] + digit_bounding_box[3] + digit_padding, digit_selection_image.shape[0])
-      digit_image = digit_selection_image[digit_image_min_y:digit_image_max_y, digit_image_min_x:digit_image_max_x]
-      digit_images.append(digit_image)
-      if debug:
-        plt.figure(figsize=(4, 2))
-        plt.title('Detected Digit')
-        plt.imshow(digit_image.copy(), cmap='gray')
-        plt.show()
-    return digit_images
+    return select_digit_images_from_image(pre_processed_image, digit_bounding_boxes, debug)
 
 # """# Image Prediction"""
 
