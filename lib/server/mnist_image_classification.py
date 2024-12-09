@@ -29,6 +29,8 @@ import cv2
 import os
 from flask import Flask, request, jsonify
 
+debug = True
+
 app = Flask(__name__)
 @app.route('/run-get_boxes', methods=['POST'])
 def get_boxes():
