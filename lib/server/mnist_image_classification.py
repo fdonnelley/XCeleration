@@ -18,7 +18,7 @@ import tensorflow as tf
 from tensorflow.keras.models import load_model
 # from keras.layers import Input, Dense, Conv2D, Dropout, Flatten, MaxPooling2D, BatchNormalization
 # from sklearn.metrics import confusion_matrix
-import seaborn as sns
+# import seaborn as sns
 # from tensorflow.keras.preprocessing.image import ImageDataGenerator
 # from keras.preprocessing.image import load_img, img_to_array
 # from tensorflow.keras.optimizers import Adam
@@ -35,23 +35,20 @@ app = Flask(__name__)
 @app.route('/run-get_boxes', methods=['POST'])
 def get_boxes():
   # Get the uploaded file
-  if 'image' not in request.files:
-      return jsonify({"error": "No image uploaded"}), 400
-  
-  file = request.files['image']
-  file_bytes = file.read()
-
-  # Convert bytes to an OpenCV image
-  nparr = np.frombuffer(file_bytes, np.uint8)
-  cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-  coordinates =  get_digit_bounding_boxes(pre_process_image(cv_image))
-  print('coordinates', coordinates)
-  return jsonify({"coordinates": coordinates})
+  cv_image = get_uploaded_image(request)
+  return get_digit_bounding_boxes(cv_image)
 
 
 @app.route('/run-predict_digits_from_picture', methods=['POST'])
 def run_function():
   # Get the uploaded file
+  cv_image = get_uploaded_image(request)
+  result = predict_digits_from_picture(cv_image)
+  print("result:", result)
+  return format_digits_and_confidences_to_response(result[0], result[1])
+
+
+def get_uploaded_image(request):
   if 'image' not in request.files:
       return jsonify({"error": "No image uploaded"}), 400
   
@@ -61,14 +58,14 @@ def run_function():
   # Convert bytes to an OpenCV image
   nparr = np.frombuffer(file_bytes, np.uint8)
   cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-  result = predict_digits_from_picture(cv_image)
-  numbers_array_str = list(result[0].astype(str))
-  confidences_array_str = list(result[1].astype(str))
+  return cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+
+def format_digits_and_confidences_to_response(digits, confidences):
+  numbers_array_str = list(digits.astype(str))
+  confidences_array_str = list(confidences.astype(str))
   number = ''.join(numbers_array_str)
-  print("result:", result)
   print(confidences_array_str, number)
   return jsonify({"number": number, 'confidences': confidences_array_str})
-
 """# Visualize Examples"""
 
 def visualize_mnist_image(image, title='MNIST Image'):
@@ -83,17 +80,6 @@ def visualize_mnist_image(image, title='MNIST Image'):
 def proccess_data(data):
   data = (data == 255).astype(np.float32)
   return data
-
-# def prepare_data(data, batch_size=times_to_augment):
-#   for i in range(0, data.shape[0], batch_size):
-#     batch = data[i:i+batch_size]
-
-#     processed_batch = proccess_data(batch)
-
-#     data[i:i+batch_size] = processed_batch
-#   return data
-
-# convert from integers to floats
 
 """# Digit Prediction"""
 
@@ -151,8 +137,28 @@ def sort_bounding_boxes(bounding_boxes):
   bounding_boxes.sort(key=lambda x: x[1])
   return bounding_boxes
 
+def blur_image(image, blur_width):
+  blurred_image =  image.copy()
+  # Apply blur to left side
+  blurred_image[:, :blur_width] = cv2.blur(image[:, :blur_width], (49, 49), 0)
+
+  # Apply blur to right side
+  blurred_image[:, -blur_width:] = cv2.blur(image[:, -blur_width:], (49, 49), 0)
+  return blurred_image
+
+def crop_image(image, debug=False):
+  crop_width = min(200, image.shape[1]/3)
+  if debug:
+    plt.figure(figsize=(10, 5))
+    plt.title('Blurred Image to show Crop')
+    plt.imshow(blur_image(image.copy(), crop_width))
+    plt.show()
+  image = image[:, crop_width: -crop_width]
+  return image
+
 def pre_process_image(image, debug=False):
-  gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+  cropped_image = crop_image(image, debug=debug)
+  gray = cv2.cvtColor(cropped_image, cv2.COLOR_RGB2GRAY)
 
   # Step 1: Initial preprocessing with adaptive thresholding instead of Otsu
   blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -239,7 +245,8 @@ def select_and_sort_bounding_boxes(bounding_boxes, debug=False):
   sorted_bounding_boxes = sort_bounding_boxes(bounding_boxes)
   if validate_grouped_bounding_boxes(sorted_bounding_boxes):
     return sorted_bounding_boxes
-  print('selecting bounding boxes')
+  if debug:
+    print('selecting bounding boxes')
   remaining_sorted_bounding_boxes = sorted_bounding_boxes.copy()
   bounding_box_groups = []
   while remaining_sorted_bounding_boxes:
@@ -270,26 +277,12 @@ def validate_grouped_bounding_boxes(bounding_box_group, area_threshold=0.5):
 
     return area_ratio >= area_threshold
 
-def blur_image(image, blur_width):
-  blurred_image =  image.copy()
-  # Apply blur to left side
-  blurred_image[:, :blur_width] = cv2.blur(image[:, :blur_width], (49, 49), 0)
+def get_digit_bounding_boxes(image):
+  pre_processed_image = pre_process_image(image)
+  return get_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=False)
 
-  # Apply blur to right side
-  blurred_image[:, -blur_width:] = cv2.blur(image[:, -blur_width:], (49, 49), 0)
-  return blurred_image
 
-def crop_image(image, debug=False):
-  crop_width = min(200, image.shape[1]/3)
-  if debug:
-    plt.figure(figsize=(10, 5))
-    plt.title('Blurred Image to show Crop')
-    plt.imshow(blur_image(image.copy(), crop_width))
-    plt.show()
-  image = image[:, crop_width: -crop_width]
-  return image
-
-def get_digit_bounding_boxes(pre_processed_image):
+def get_digit_bounding_boxes_from_processed_image(pre_processed_image, debug):
   # Find Contours
   contours, _ = cv2.findContours(pre_processed_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
   filtered_bounding_boxes = []
@@ -329,44 +322,10 @@ def select_digit_images_from_image(image, digit_bounding_boxes, debug=False):
       plt.imshow(digit_image.copy(), cmap='gray')
       plt.show()
 
-def process_image(image_path, debug=False):
-    # Load and convert image
-    original = cv2.imread(image_path)
-    original = cv2.cvtColor(original, cv2.COLOR_BGR2RGB)
-    cropped_image = crop_image(original, debug=debug)
-    pre_processed_image = pre_process_image(cropped_image, debug=debug)
-
-    digit_bounding_boxes = get_digit_bounding_boxes(pre_processed_image)
-    if debug:
-      print(f"Found {len(digit_bounding_boxes)} digits")
-      bounding_box_visualisation_image = show_bounding_boxes_on_image(cropped_image, digit_bounding_boxes)
-      plt.figure(figsize=(10, 5))
-      plt.title('Detected Digits')
-      plt.imshow(bounding_box_visualisation_image)
-      plt.show()
-
+def process_image(image, debug=False):
+    pre_processed_image = pre_process_image(image, debug=debug)
+    digit_bounding_boxes = get_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=debug)
     return select_digit_images_from_image(pre_processed_image, digit_bounding_boxes, debug)
-
-# """# Image Prediction"""
-
-# image_dir = '/content/drive/MyDrive/MNIST Model/testing_images'
-# correct_predictions = 0
-# incorrect_predictions = 0
-# for filename in os.listdir(image_dir):
-#   filepath = os.path.join(image_dir, filename)
-#   if os.path.isfile(filepath):
-#     actual_digits = np.array(list(map(int, list(filename[:-7]))))
-#     digit_images = process_image(filepath, debug=False)
-#     predicted_digits, confidences = predict_digits_from_images(digit_images, debug=False)
-#     if np.array_equal(actual_digits, predicted_digits):
-#       correct_predictions += 1
-#     else:
-#       incorrect_predictions += 1
-
-# print('Incorrect predictions percentage:', round(incorrect_predictions / (correct_predictions + incorrect_predictions), 2))
-# print('Correct predictions percentage:', round(correct_predictions / (correct_predictions + incorrect_predictions), 2))
-# print('Incorrect predictions:', incorrect_predictions)
-# print('Correct predictions:', correct_predictions)
 
 def predict_digits_from_picture(cv2_image):
   digit_images = process_image(cv2_image, debug=False)
