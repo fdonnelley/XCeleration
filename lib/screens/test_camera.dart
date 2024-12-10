@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:camerawesome/camerawesome_plugin.dart';
+import 'package:excel/excel.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import '../server/function.dart';
 import 'dart:typed_data';
@@ -202,19 +204,46 @@ class _CameraPageState extends State<CameraPage> {
   }
 }
 
-Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage img) async {
+Future<void> saveImage(Uint8List imageBytes) async {
+  try {
+    img.Image image = img.decodeImage(Uint8List.fromList(imageBytes))!;
+    List<int> pngBytes = img.encodePng(image); // Convert to PNG
+    File('output_image.png').writeAsBytesSync(pngBytes); // Save locally
+    print('Image saved successfully as output_image.png');
+  } catch (e) {
+    print('Error while saving image: $e');
+  }
+}
+
+Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analysisImg) async {
   // Handle different types of `AnalysisImage`
-  final bytes = img.when(
+  final bytes = analysisImg.when(
     jpeg: (JpegImage image) {
+      print('image is a jpeg');
       return image.bytes; // Return JPEG bytes
     },
     nv21: (Nv21Image image) {
+      print('image is a Nv21Image');
       // Convert NV21 format to bytes (you might need external libraries for proper conversion)
       return image.planes[0].bytes; 
     },
     bgra8888: (Bgra8888Image image) {
-      // Convert BGRA8888 to bytes if necessary
-      return image.planes[0].bytes;
+      print('image is a Bgra8888Image');
+      
+      // Convert BGRA8888 to an image object
+      final bgraBytes = image.planes[0].bytes;
+
+      final imgImage = img.Image.fromBytes(
+        width: image.width,
+        height: image.height,
+        bytes: bgraBytes,
+        format: img.Format.bgra8888, // Ensure to use the correct format
+      );
+      
+      // Convert the image to PNG bytes
+      final pngBytes = img.encodePng(imgImage);
+      
+      return pngBytes; // Return the PNG byte array
     },
     // // Add other cases if necessary
     // unknown: () {
@@ -224,10 +253,10 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage img) a
   );
 
   if (bytes == null) {
-    print("Failed to extract bytes from the image.");
-    return Uint8List.fromList([]);
+    throw("Failed to extract bytes from the image.");
+    // return Uint8List.fromList([]);
   }
-
+  saveImage(Uint8List.fromList(bytes));
   return Uint8List.fromList(bytes);
 }
 

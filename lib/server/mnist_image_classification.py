@@ -29,7 +29,7 @@ import cv2
 import os
 from flask import Flask, request, jsonify
 
-debug = True
+debug = False
 
 app = Flask(__name__)
 @app.route('/run-get_boxes', methods=['POST'])
@@ -54,10 +54,21 @@ def get_uploaded_image(request):
   
   file = request.files['image']
   file_bytes = file.read()
+  try: 
+    # Save the received bytes to verify the file
+    with open('received_image.png', 'wb') as f:
+        f.write(file_bytes)
+    print('saved image')
+  except:
+    pass
 
   # Convert bytes to an OpenCV image
   nparr = np.frombuffer(file_bytes, np.uint8)
+  print(f"nparr dtype: {nparr.dtype}, shape: {nparr.shape}")
   cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+  if cv_image == None:
+    raise Exception('CV image not loaded properly')
+  print(cv_image.shape)
   return cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
 
 def format_digits_and_confidences_to_response(digits, confidences):
@@ -157,7 +168,9 @@ def crop_image(image, debug=False):
   return image
 
 def pre_process_image(image, debug=False):
+  print(image.shape)
   cropped_image = crop_image(image, debug=debug)
+  print(image.shape)
   gray = cv2.cvtColor(cropped_image, cv2.COLOR_RGB2GRAY)
 
   # Step 1: Initial preprocessing with adaptive thresholding instead of Otsu

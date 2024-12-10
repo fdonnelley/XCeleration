@@ -55,6 +55,7 @@ dependencies:
   # google_mlkit_face_detection: ^0.12.0
   opencv_4: ^1.0.0
   open_file: ^3.5.10
+  image: ^4.3.0
 
 dev_dependencies:
   flutter_test:
