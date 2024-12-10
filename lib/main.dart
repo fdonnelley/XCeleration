@@ -1,15 +1,40 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'screens/timing_screen.dart';
 import 'runners_management.dart';
 import 'screens/bib_number_screen.dart';
 
+Process? _flaskProcess;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await startFlaskServer();
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+Future<void> startFlaskServer() async {
+  print('Starting Flask Server...');
+  _flaskProcess =  await Process.start('python', ['lib/server/mnist_image_classification.py']);
+}
+
+void stopFlaskServer() {
+  print('Stopping Flask Server');
+  _flaskProcess?.kill(); // Stop the Flask server
+}
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  MyAppState createState() => MyAppState();
+}
+
+class MyAppState extends State<MyApp> {
+  @override
+  void dispose() {
+    stopFlaskServer();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

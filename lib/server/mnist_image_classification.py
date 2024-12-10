@@ -345,4 +345,5 @@ def predict_digits_from_picture(cv2_image):
   return predict_digits_from_images(digit_images, debug=False)
 
 if __name__ == '__main__':
+    print("Server started")
     app.run(debug=True, host='0.0.0.0', port=5001)
