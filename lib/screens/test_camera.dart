@@ -41,6 +41,7 @@ class _CameraPageState extends State<CameraPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: const Text('Camera Page')),
       body: camerawesome.CameraAwesomeBuilder.awesome(
         saveConfig: SaveConfig.photo(
           pathBuilder: (sensors) async {
@@ -189,23 +190,45 @@ class _CameraPageState extends State<CameraPage> {
 
     try {
       
-      final Uint8List imageBytes = _getImageBytesFromInputImage(img);
+      final Uint8List imageBytes = await _getImageBytesFromInputImage(img);
+      print('type: ${imageBytes.runtimeType}');
       // Get the green square coordinates
       _greenSquareCoordinates = await _getGreenSquareCoordinates(imageBytes); // Call the new function
 
       // debugPrint("...sending image resulted with : ${faces?.length} faces");
     } catch (error) {
-      debugPrint("...sending image resulted error $error");
+      debugPrint("...sending image resulted in error $error");
     }
   }
 }
-_getImageBytesFromInputImage(camerawesome.AnalysisImage img) async {
-  // Assuming img has a method to get the bytes directly
-  // If not, you may need to adjust this based on the actual structure of AnalysisImage
-  final bytes = img.when(jpeg: (JpegImage image) {
-    return image.bytes;
-  });
-  return bytes;
+
+Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage img) async {
+  // Handle different types of `AnalysisImage`
+  final bytes = img.when(
+    jpeg: (JpegImage image) {
+      return image.bytes; // Return JPEG bytes
+    },
+    nv21: (Nv21Image image) {
+      // Convert NV21 format to bytes (you might need external libraries for proper conversion)
+      return image.planes[0].bytes; 
+    },
+    bgra8888: (Bgra8888Image image) {
+      // Convert BGRA8888 to bytes if necessary
+      return image.planes[0].bytes;
+    },
+    // // Add other cases if necessary
+    // unknown: () {
+    //   print("Unknown image format");
+    //   return null;
+    // },
+  );
+
+  if (bytes == null) {
+    print("Failed to extract bytes from the image.");
+    return Uint8List.fromList([]);
+  }
+
+  return Uint8List.fromList(bytes);
 }
 
 class _MyPreviewDecoratorWidget extends StatelessWidget {
