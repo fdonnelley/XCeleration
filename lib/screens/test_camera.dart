@@ -232,13 +232,37 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
       
       // Convert BGRA8888 to an image object
       final bgraBytes = image.planes[0].bytes;
+      final rgbaBytes = Uint8List(bgraBytes.length);
 
+      for (int i = 0; i < bgraBytes.length; i += 4) {
+        rgbaBytes[i] = bgraBytes[i + 2];     // Red
+        rgbaBytes[i + 1] = bgraBytes[i + 1]; // Green
+        rgbaBytes[i + 2] = bgraBytes[i];     // Blue
+        rgbaBytes[i + 3] = bgraBytes[i + 3]; // Alpha
+      }
+
+      // Create an image from RGBA bytes
       final imgImage = img.Image.fromBytes(
         width: image.width,
         height: image.height,
-        bytes: bgraBytes,
-        format: img.Format.bgra8888, // Ensure to use the correct format
+        bytes: rgbaBytes.buffer,
       );
+
+      // Convert the image to PNG bytes
+      final pngBytes1 = img.encodePng(imgImage);
+      
+      // Save the PNG file
+      File("images/outputRGBA.png").writeAsBytesSync(pngBytes1);
+
+      img.Image bitmap = img.decodeImage(Uint8List.fromList(bgraBytes))!;
+      File("images/output_image.png").writeAsBytesSync(img.encodePng(bitmap));
+
+      // final imgImage = img.Image.fromBytes(
+      //   width: image.width,
+      //   height: image.height,
+      //   bytes: bgraBytes.buffer,
+      //   format: img.Format.bgra, // Ensure to use the correct format
+      // );
       
       // Convert the image to PNG bytes
       final pngBytes = img.encodePng(imgImage);
