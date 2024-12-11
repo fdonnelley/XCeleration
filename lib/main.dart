@@ -3,13 +3,20 @@ import 'package:flutter/material.dart';
 import 'screens/timing_screen.dart';
 import 'runners_management.dart';
 import 'screens/bib_number_screen.dart';
+import 'package:provider/provider.dart';
+import 'models/timing_data.dart';
 
 Process? _flaskProcess;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await startFlaskServer();
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => TimingData(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 Future<void> startFlaskServer() async {
