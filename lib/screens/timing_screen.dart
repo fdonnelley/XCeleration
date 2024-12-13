@@ -1,13 +1,12 @@
 import 'package:race_timing_app/screens/results_screen.dart';
 import 'package:race_timing_app/utils/time_formatter.dart';
 import 'package:flutter/material.dart';
-// import 'bib_number_screen.dart';
+import 'package:provider/provider.dart';
+import '../models/timing_data.dart';
 // import 'package:race_timing_app/bluetooth_service.dart' as app_bluetooth;
 import 'package:race_timing_app/database_helper.dart';
 // import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-// import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'dart:convert';
-// import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 
 class TimingScreen extends StatefulWidget {
@@ -18,15 +17,16 @@ class TimingScreen extends StatefulWidget {
 }
 
 class _TimingScreenState extends State<TimingScreen> {
-  final List<Map<String, dynamic>> _records = [];
-  DateTime? _startTime;
-  final List<TextEditingController> _controllers = [];
+  // final List<Map<String, dynamic>> _records = [];
+  // DateTime? startTime;
+  // final List<TextEditingController> _controllers = [];
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   // List<BluetoothDevice> _availableDevices = [];
   // BluetoothDevice? _connectedDevice;
 
   void _startRace() {
-    if (_records.isNotEmpty) {
+    final records = Provider.of<TimingData>(context, listen: false).records;
+    if (records.isNotEmpty) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -41,8 +41,8 @@ class _TimingScreenState extends State<TimingScreen> {
               onPressed: () {
                 Navigator.of(context).pop(true);
                 setState(() {
-                  _records.clear();
-                  _startTime = DateTime.now();
+                  records.clear();
+                  Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now());
                 });
               },
               child: const Text('Yes'),
@@ -52,8 +52,8 @@ class _TimingScreenState extends State<TimingScreen> {
       );
     } else {
       setState(() {
-        _records.clear();
-        _startTime = DateTime.now();
+        records.clear();
+        Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now());
       });
     }
   }
@@ -73,7 +73,7 @@ class _TimingScreenState extends State<TimingScreen> {
             onPressed: () {
               Navigator.of(context).pop(true);
               setState(() {
-                _startTime = null;
+                Provider.of<TimingData>(context, listen: false).changeStartTime(null);
               });
             },
             child: const Text('Yes'),
@@ -84,28 +84,30 @@ class _TimingScreenState extends State<TimingScreen> {
   }
 
   void _logTime() {
-    if (_startTime == null) return;
+    final startTime = Provider.of<TimingData>(context, listen: false).startTime;
+    if (startTime == null) return;
 
     setState(() {
       final now = DateTime.now();
-      final difference = now.difference(_startTime!);
+      final difference = now.difference(startTime);
 
-      _records.add({
+      Provider.of<TimingData>(context, listen: false).addRecord({
         'time': difference,
         'formatted_time': formatDuration(difference),
         'bib_number': null,
-        'position': _records.length + 1, // Add position based on the order of logging
+        'position': Provider.of<TimingData>(context, listen: false).records.length + 1,
       });
     });
 
     // Add a new controller for the new record
-    _controllers.add(TextEditingController());
+    Provider.of<TimingData>(context, listen: false).addController(TextEditingController());
   }
 
   void _updateBib(int index, String bib) async {
+    final records = Provider.of<TimingData>(context, listen: false).records;
     // Update the bib in the record
     setState(() {
-      _records[index]['bib_number'] = bib;
+      records[index]['bib_number'] = bib;
     });
 
     // Fetch runner details from the database
@@ -114,16 +116,16 @@ class _TimingScreenState extends State<TimingScreen> {
     // Update the record with runner details if found
     if (runner != null) {
       setState(() {
-        _records[index]['name'] = runner['name'];
-        _records[index]['grade'] = runner['grade'];
-        _records[index]['school'] = runner['school'];
+        records[index]['name'] = runner['name'];
+        records[index]['grade'] = runner['grade'];
+        records[index]['school'] = runner['school'];
       });
     }
     else {
       setState(() {
-        _records[index]['name'] = null;
-        _records[index]['grade'] = null;
-        _records[index]['school'] = null;
+        records[index]['name'] = null;
+        records[index]['grade'] = null;
+        records[index]['school'] = null;
       });
     }
   }
@@ -141,21 +143,22 @@ class _TimingScreenState extends State<TimingScreen> {
   }
 
   void _processQRData(String qrData) async {
+    final records = Provider.of<TimingData>(context, listen: false).records;
     try {
       final List<dynamic> bibData = json.decode(qrData);
 
       if (bibData.isNotEmpty) {
-        for (int i = 0; i < bibData.length && i < _records.length; i++) {
+        for (int i = 0; i < bibData.length && i < records.length; i++) {
           setState(() {
-            _records[i]['bib_number'] = bibData[i];
+            records[i]['bib_number'] = bibData[i];
           });
 
           final runner = await DatabaseHelper.instance.fetchRunnerByBibNumber(bibData[i]);
           if (runner != null) {
             setState(() {
-              _records[i]['name'] = runner['name'];
-              _records[i]['grade'] = runner['grade'];
-              _records[i]['school'] = runner['school'];
+              records[i]['name'] = runner['name'];
+              records[i]['grade'] = runner['grade'];
+              records[i]['school'] = runner['school'];
             });
           }
         }
@@ -321,14 +324,16 @@ class _TimingScreenState extends State<TimingScreen> {
 
   void _navigateToResults() {
     // Check if all runners have a non-null bib number
-    bool allRunnersHaveBibNumbers = _records.every((runner) => runner['bib_number'] != null);
+    final records = Provider.of<TimingData>(context, listen: false).records;
+
+    bool allRunnersHaveBibNumbers = records.every((runner) => runner['bib_number'] != null);
 
     if (allRunnersHaveBibNumbers) {
       // Navigate to the results page
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ResultsScreen(runners: _records),
+          builder: (context) => ResultsScreen(runners: records),
         ),
       );
     } else {
@@ -357,7 +362,7 @@ class _TimingScreenState extends State<TimingScreen> {
 
   @override
   void dispose() {
-    for (var controller in _controllers) {
+    for (var controller in Provider.of<TimingData>(context, listen: false).controllers) {
       controller.dispose();
     }
     super.dispose();
@@ -365,6 +370,10 @@ class _TimingScreenState extends State<TimingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final startTime = Provider.of<TimingData>(context, listen: false).startTime;
+    final records = Provider.of<TimingData>(context, listen: false).records;
+    final controllers = Provider.of<TimingData>(context, listen: false).controllers;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Race Timing')),
       body: Padding(
@@ -383,12 +392,12 @@ class _TimingScreenState extends State<TimingScreen> {
                       builder: (context, constraints) {
                         double fontSize = constraints.maxWidth * 0.12; // Scalable font size
                         return ElevatedButton(
-                          onPressed: _startTime == null ? _startRace : _stopRace,
+                          onPressed: startTime == null ? _startRace : _stopRace,
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(0, constraints.maxWidth * 0.5), // Button height scales
                           ),
                           child: Text(
-                            _startTime == null ? 'Start Race' : 'Stop Race',
+                            startTime == null ? 'Start Race' : 'Stop Race',
                             style: TextStyle(fontSize: fontSize),
                           ),
                         );
@@ -396,7 +405,7 @@ class _TimingScreenState extends State<TimingScreen> {
                     ),
                   ),
                 ),
-                if ((_startTime == null && _records.isEmpty) || (_startTime != null))
+                if ((startTime == null && records.isEmpty) || (startTime != null))
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(8.0), // Padding around the button
@@ -404,7 +413,7 @@ class _TimingScreenState extends State<TimingScreen> {
                         builder: (context, constraints) {
                           double fontSize = constraints.maxWidth * 0.12;
                           return ElevatedButton(
-                            onPressed: _startTime != null ? _logTime : null,
+                            onPressed: startTime != null ? _logTime : null,
                             style: ElevatedButton.styleFrom(
                               minimumSize: Size(0, constraints.maxWidth * 0.5),
                             ),
@@ -417,7 +426,7 @@ class _TimingScreenState extends State<TimingScreen> {
                       ),
                     ),
                   ),
-                if (_startTime == null && _records.isNotEmpty)
+                if (startTime == null && records.isNotEmpty)
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(8.0), // Padding around the button
@@ -449,7 +458,7 @@ class _TimingScreenState extends State<TimingScreen> {
             //   icon: const Icon(Icons.numbers),
             //   label: const Text('Record Bib Numbers'),
             // ),
-            if (_startTime == null && _records.isNotEmpty) ...[
+            if (startTime == null && records.isNotEmpty) ...[
               const SizedBox(height: 8),
               ElevatedButton.icon(
                 onPressed: _navigateToResults,
@@ -515,13 +524,13 @@ class _TimingScreenState extends State<TimingScreen> {
             //     },
             //   ),
             // Records Section
-            if (_records.isNotEmpty)
+            if (records.isNotEmpty)
               Expanded(
                 child: ListView.builder(
-                  itemCount: _records.length,
+                  itemCount: records.length,
                   itemBuilder: (context, index) {
-                    final record = _records[index];
-                    final controller = _controllers[index];
+                    final record = records[index];
+                    final controller = controllers[index];
                     return Card(
                       elevation: 4,
                       margin: const EdgeInsets.symmetric(vertical: 6.0),
