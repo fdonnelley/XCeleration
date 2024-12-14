@@ -84,7 +84,6 @@ def get_uploaded_image(request):
   except Exception as e:
       print(f"Error saving image: {e}")
   return cv2.cvtColor(cv_image, cv2.COLOR_RGBA2RGB)
-  return cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
 
 # Format the predicted digits and their confidences into a JSON response.
 def format_digits_and_confidences_to_response(digits, confidences):
@@ -236,12 +235,14 @@ def pre_process_image(image, debug=False):
 def filter_contour(contour, pre_processed_image, debug=False):
   min_contour_area = 800
   max_contour_area = pre_processed_image.shape[0] / 3 * pre_processed_image.shape[1] / 3
+  print("max_contour_area:", max_contour_area)
   min_contour_aspect_ratio = 0.8
   max_contour_aspect_ratio = 8.0
   contour_margin = 20
-  contour_margins_max_white_threshold = 0.09
-  contour_area_min_white_threshold = 0.3
-  contour_area_max_white_threshold = 0.7
+  contour_margins_max_white_threshold = 0.09 # Threshold for white pixels around the contour
+  black_pixel_threshold = 0.95  # Threshold for majority white pixels
+  # white_pixel_threshold = 0.3
+  # contour_area_max_white_threshold = 0.7
 
   x, y, w, h = cv2.boundingRect(contour)
   area = w * h
@@ -261,20 +262,26 @@ def filter_contour(contour, pre_processed_image, debug=False):
       contour_area_white_pixels = np.sum(contour_area == 255)
       contour_area_total_pixels = contour_area.size
 
+      # Calculate the number of black pixels which will be the background color
+      black_pixels = np.sum(contour_area == 0)
+      total_pixels = contour_area.size
+      
+      # Calculate the percentage of white and black pixels
+      black_percentage = black_pixels / total_pixels
+      
       margin_white_pixels = padded_contour_area_white_pixels - contour_area_white_pixels
       margin_total_pixels = padded_contour_area_total_pixels - contour_area_total_pixels
       if margin_total_pixels != 0:
         white_percentage = margin_white_pixels / margin_total_pixels
       else:
         white_percentage = 0
-        # print('area:', area)
-        # print('max_contour_area:', max_contour_area)
-        # print(f'x: {x}. y: {y}. w: {w}. h: {h}')
-        # print('contour:', contour)
-      # print('white_percentage:', white_percentage)
-      if white_percentage < contour_margins_max_white_threshold:
+
+      # Check if the box contains predominantly black pixels or has an unusual amount of white pixels in the margin
+      if white_percentage < contour_margins_max_white_threshold and black_percentage < black_pixel_threshold:
         # print('contour area white percentage:', contour_area_white_pixels / contour_area_total_pixels)
         # print('white_percentage:', white_percentage)
+        # print('black_percentage', black_percentage)
+        # print('black_pixel_threshold', black_pixel_threshold)
         return True
   return False
 
