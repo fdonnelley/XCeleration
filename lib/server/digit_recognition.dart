@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart'; // Add this import
 
 
 Future<String> predictDigitsFromPicture(XFile picture) async {
-  final url = Uri.parse('http://192.168.1.121:5001/run-predict_digits_from_picture');
+  final url = Uri.parse('http://192.168.1.121:5001/run-find_digits');
 
   // Create a multipart request
   var request = http.MultipartRequest('POST', url);
@@ -26,7 +26,7 @@ Future<String> predictDigitsFromPicture(XFile picture) async {
   return '';
 }
 
-Future<List<List<int>>> get_digit_bounding_boxes(Uint8List pictureBytes) async {
+Future<List<List<int>>> getDigitBoundingBoxes(Uint8List pictureBytes) async {
   final url = Uri.parse('http://192.168.1.121:5001/run-get_boxes');
 
   // Create a multipart request

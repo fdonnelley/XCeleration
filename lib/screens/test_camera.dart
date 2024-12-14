@@ -3,7 +3,7 @@ import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:excel/excel.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
-import '../server/function.dart';
+import '../server/digit_recognition.dart';
 import 'dart:typed_data';
 import 'package:camerawesome/camerawesome_plugin.dart' as camerawesome;
 import 'package:flutter/material.dart';
@@ -33,7 +33,7 @@ class _CameraPageState extends State<CameraPage> {
     super.dispose();
   }
   Future<List<List<Offset>>> _getGreenSquareCoordinates(Uint8List image) async {
-    final list_of_coordinates = await get_digit_bounding_boxes(image);
+    final list_of_coordinates = await getDigitBoundingBoxes(image);
     return list_of_coordinates.map((coordinates) => [
       Offset(coordinates[0].toDouble(), coordinates[1].toDouble()),
       Offset(coordinates[2].toDouble(), coordinates[3].toDouble())

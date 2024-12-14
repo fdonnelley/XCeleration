@@ -39,15 +39,15 @@ def get_boxes():
   return get_digit_bounding_boxes(cv_image)
 
 
-@app.route('/run-predict_digits_from_picture', methods=['POST'])
-def run_function():
+@app.route('/run-find_digits', methods=['POST'])
+def find_digits():
   # Get the uploaded file
   cv_image = get_uploaded_image(request)
   result = predict_digits_from_picture(cv_image)
   print("result:", result)
   return format_digits_and_confidences_to_response(result[0], result[1])
 
-
+# Retrieve and process the uploaded image from the request.
 def get_uploaded_image(request):
   if 'image' not in request.files:
       return jsonify({"error": "No image uploaded"}), 400
@@ -71,6 +71,7 @@ def get_uploaded_image(request):
   print(cv_image.shape)
   return cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
 
+# Format the predicted digits and their confidences into a JSON response.
 def format_digits_and_confidences_to_response(digits, confidences):
   numbers_array_str = list(digits.astype(str))
   confidences_array_str = list(confidences.astype(str))
@@ -79,6 +80,7 @@ def format_digits_and_confidences_to_response(digits, confidences):
   return jsonify({"number": number, 'confidences': confidences_array_str})
 """# Visualize Examples"""
 
+# Visualize a given MNIST image with a title.
 def visualize_mnist_image(image, title='MNIST Image'):
   plt.figure(figsize=(10, 5))
   plt.title(title)
@@ -87,13 +89,13 @@ def visualize_mnist_image(image, title='MNIST Image'):
   # [0, :, :, 0] - to undo reshaped image
 
 """# Prepare Data"""
-
-def proccess_data(data):
+# Process the input data to binary format.
+def process_data(data):
   data = (data == 255).astype(np.float32)
   return data
 
 """# Digit Prediction"""
-
+# Resize the input image array to maintain aspect ratio and fit into 28x28.
 def resize_image(image_array):
   aspect_ratio = image_array.shape[1] / image_array.shape[0]
   if(aspect_ratio < 1):
@@ -120,6 +122,7 @@ def resize_image(image_array):
   padded_image = np.pad(resized_image, ((pad_height_top, pad_height_bottom), (pad_width_left, pad_width_right)), constant_values=0)
   return padded_image
 
+# Predict digits from an array of images using the trained model.
 def predict_digits_from_arrays(image_arrays):
   model_path = os.path.abspath("lib/server/models/mnist_model.keras")
   model = load_model(model_path)
@@ -131,23 +134,25 @@ def predict_digits_from_arrays(image_arrays):
   confidences = np.max(predictions, axis=1)
   return digits, confidences
 
+# Predict digits from a list of images after resizing and processing.
 def predict_digits_from_images(image, debug=False):
   resized_images = np.array(list(map(resize_image, image)))
   if debug:
     for resized_image in resized_images:
       visualize_mnist_image(resized_image)
-  proccessed_images = proccess_data(resized_images)
-  proccessed_image_arrays = proccessed_images.reshape(proccessed_images.shape[0], 28, 28, 1)
-  digits, confidences = predict_digits_from_arrays(proccessed_image_arrays)
+  processed_images = process_data(resized_images)
+  processed_image_arrays = processed_images.reshape(processed_images.shape[0], 28, 28, 1)
+  digits, confidences = predict_digits_from_arrays(processed_image_arrays)
   return digits, confidences
 
 """# Digit Seperation"""
-
+# Sort bounding boxes based on their y-coordinate.
 def sort_bounding_boxes(bounding_boxes):
   # Sort bounding boxes by y-coordinate
   bounding_boxes.sort(key=lambda x: x[1])
   return bounding_boxes
 
+# Apply a blur effect to the left and right sides of the image.
 def blur_image(image, blur_width):
   blurred_image =  image.copy()
   # Apply blur to left side
@@ -157,6 +162,7 @@ def blur_image(image, blur_width):
   blurred_image[:, -blur_width:] = cv2.blur(image[:, -blur_width:], (49, 49), 0)
   return blurred_image
 
+# Crop the image to remove unnecessary parts based on the width.
 def crop_image(image, debug=False):
   crop_width = min(200, image.shape[1]/3)
   if debug:
@@ -167,6 +173,7 @@ def crop_image(image, debug=False):
   image = image[:, crop_width: -crop_width]
   return image
 
+# Pre-process the image for digit recognition.
 def pre_process_image(image, debug=False):
   print(image.shape)
   cropped_image = crop_image(image, debug=debug)
@@ -209,6 +216,7 @@ def pre_process_image(image, debug=False):
     plt.show()
   return binary_full_cleaned
 
+# Filter contours based on area and aspect ratio criteria.
 def filter_contour(contour, pre_processed_image, debug=False):
   min_contour_area = 800
   max_contour_area = pre_processed_image.shape[0] / 3 * pre_processed_image.shape[1] / 3
@@ -254,6 +262,7 @@ def filter_contour(contour, pre_processed_image, debug=False):
         return True
   return False
 
+# Select and sort bounding boxes based on validation criteria.
 def select_and_sort_bounding_boxes(bounding_boxes, debug=False):
   sorted_bounding_boxes = sort_bounding_boxes(bounding_boxes)
   if validate_grouped_bounding_boxes(sorted_bounding_boxes):
@@ -270,6 +279,7 @@ def select_and_sort_bounding_boxes(bounding_boxes, debug=False):
     bounding_box_groups.append(bounding_box_group)
   return max(bounding_box_groups, key=len)
 
+# Validate if the grouped bounding boxes meet the area threshold.
 def validate_grouped_bounding_boxes(bounding_box_group, area_threshold=0.5):
     if len(bounding_box_group) == 1:
         return True
@@ -290,12 +300,13 @@ def validate_grouped_bounding_boxes(bounding_box_group, area_threshold=0.5):
 
     return area_ratio >= area_threshold
 
+# Get bounding boxes for digits in the provided image.
 def get_digit_bounding_boxes(image):
   pre_processed_image = pre_process_image(image)
-  return get_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=False)
+  return extract_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=False)
 
-
-def get_digit_bounding_boxes_from_processed_image(pre_processed_image, debug):
+# Extract digit bounding boxes from a pre-processed image.
+def extract_digit_bounding_boxes_from_processed_image(pre_processed_image, debug):
   # Find Contours
   contours, _ = cv2.findContours(pre_processed_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
   filtered_bounding_boxes = []
@@ -305,6 +316,7 @@ def get_digit_bounding_boxes_from_processed_image(pre_processed_image, debug):
       filtered_bounding_boxes.append((x, y, w, h))
   return select_and_sort_bounding_boxes(filtered_bounding_boxes, debug=debug)
 
+# Draw bounding boxes on the image for visualization.
 def show_bounding_boxes_on_image(image, digit_bounding_boxes):
   display_image = image.copy()
   for digit_bounding_box in digit_bounding_boxes:
@@ -318,6 +330,7 @@ def show_bounding_boxes_on_image(image, digit_bounding_boxes):
     )
   return display_image
 
+# Select individual digit images from the original image based on bounding boxes.
 def select_digit_images_from_image(image, digit_bounding_boxes, debug=False):
   digit_images = []
   digit_selection_image = image.copy()
@@ -335,11 +348,13 @@ def select_digit_images_from_image(image, digit_bounding_boxes, debug=False):
       plt.imshow(digit_image.copy(), cmap='gray')
       plt.show()
 
+# Process the image to extract digit images and their bounding boxes.
 def process_image(image, debug=False):
     pre_processed_image = pre_process_image(image, debug=debug)
     digit_bounding_boxes = get_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=debug)
     return select_digit_images_from_image(pre_processed_image, digit_bounding_boxes, debug)
 
+# Predict digits from a given image using the processing pipeline.
 def predict_digits_from_picture(cv2_image):
   digit_images = process_image(cv2_image, debug=False)
   return predict_digits_from_images(digit_images, debug=False)
