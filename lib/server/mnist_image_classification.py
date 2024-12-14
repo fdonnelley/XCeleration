@@ -241,7 +241,7 @@ def filter_contour(contour, pre_processed_image, debug=False):
   contour_margin = 20
   contour_margins_max_white_threshold = 0.09 # Threshold for white pixels around the contour
   black_pixel_threshold = 0.95  # Threshold for majority white pixels
-  # white_pixel_threshold = 0.3
+  white_pixel_threshold = 0.99  # Threshold for majority white pixels
   # contour_area_max_white_threshold = 0.7
 
   x, y, w, h = cv2.boundingRect(contour)
@@ -265,9 +265,14 @@ def filter_contour(contour, pre_processed_image, debug=False):
       # Calculate the number of black pixels which will be the background color
       black_pixels = np.sum(contour_area == 0)
       total_pixels = contour_area.size
+
+      # Calculate the number of white pixels which will be the digit  color
+      white_pixels = np.sum(contour_area == 255)
+      total_pixels = contour_area.size
       
       # Calculate the percentage of white and black pixels
       black_percentage = black_pixels / total_pixels
+      white_percentage = white_pixels / total_pixels
       
       margin_white_pixels = padded_contour_area_white_pixels - contour_area_white_pixels
       margin_total_pixels = padded_contour_area_total_pixels - contour_area_total_pixels
@@ -277,11 +282,13 @@ def filter_contour(contour, pre_processed_image, debug=False):
         white_percentage = 0
 
       # Check if the box contains predominantly black pixels or has an unusual amount of white pixels in the margin
-      if white_percentage < contour_margins_max_white_threshold and black_percentage < black_pixel_threshold:
+      if white_percentage < contour_margins_max_white_threshold and black_percentage < black_pixel_threshold and white_percentage < white_pixel_threshold:
         # print('contour area white percentage:', contour_area_white_pixels / contour_area_total_pixels)
         # print('white_percentage:', white_percentage)
         # print('black_percentage', black_percentage)
         # print('black_pixel_threshold', black_pixel_threshold)
+        # print('white_percentage', white_percentage)
+        # print('white_pixel_threshold', white_pixel_threshold)
         return True
   return False
 

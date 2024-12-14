@@ -4,6 +4,8 @@ import 'package:permission_handler/permission_handler.dart'; // Add this import
 
 
 class CameraScreen extends StatefulWidget {
+  const CameraScreen({super.key});
+
   @override
   _CameraScreenState createState() => _CameraScreenState();
 }
