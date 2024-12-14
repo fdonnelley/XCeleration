@@ -36,7 +36,8 @@ app = Flask(__name__)
 def get_boxes():
   # Get the uploaded file
   cv_image = get_uploaded_image(request)
-  return get_digit_bounding_boxes(cv_image)
+  coordinates = get_digit_bounding_boxes(cv_image)
+  return jsonify({"coordinates": coordinates})
 
 
 @app.route('/run-find_digits', methods=['POST'])
@@ -54,21 +55,35 @@ def get_uploaded_image(request):
   
   file = request.files['image']
   file_bytes = file.read()
-  try: 
-    # Save the received bytes to verify the file
-    with open('received_image.png', 'wb') as f:
-        f.write(file_bytes)
-    print('saved image')
-  except:
-    pass
+  width = 720
+  height = 1280
+  # try: 
+  #   # Save the received bytes to verify the file
+  #   with open('received_image.png', 'wb') as f:
+  #       f.write(file_bytes)
+  #   print('saved image')
+  # except:
+  #   pass
 
   # Convert bytes to an OpenCV image
-  nparr = np.frombuffer(file_bytes, np.uint8)
+  nparr = np.frombuffer(file_bytes, dtype=np.uint8)
   print(f"nparr dtype: {nparr.dtype}, shape: {nparr.shape}")
-  cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-  if cv_image == None:
-    raise Exception('CV image not loaded properly')
+  cv_image = nparr.reshape((height, width, 4))
+  # cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
   print(cv_image.shape)
+
+  # cv_image2 = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)  # Use IMREAD_UNCHANGED for 4-channel images
+  # if cv_image2 is None:
+  #     raise ValueError("Failed to decode image. Check the input bytes.")
+  # print(cv_image2.shape)
+
+  try: 
+      # Save the decoded image to verify the file
+      cv2.imwrite('received_image2.png', cv2.cvtColor(cv_image, cv2.COLOR_RGBA2RGB))
+      print('Saved image')
+  except Exception as e:
+      print(f"Error saving image: {e}")
+  return cv2.cvtColor(cv_image, cv2.COLOR_RGBA2RGB)
   return cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
 
 # Format the predicted digits and their confidences into a JSON response.
@@ -179,6 +194,7 @@ def pre_process_image(image, debug=False):
   cropped_image = crop_image(image, debug=debug)
   print(image.shape)
   gray = cv2.cvtColor(cropped_image, cv2.COLOR_RGB2GRAY)
+  # gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
   # Step 1: Initial preprocessing with adaptive thresholding instead of Otsu
   blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -277,11 +293,11 @@ def select_and_sort_bounding_boxes(bounding_boxes, debug=False):
       if validate_grouped_bounding_boxes(bounding_box_group + [bounding_box]):
         bounding_box_group.append(bounding_box)
     bounding_box_groups.append(bounding_box_group)
-  return max(bounding_box_groups, key=len)
+  return max(bounding_box_groups, key=len) if bounding_box_groups else []
 
 # Validate if the grouped bounding boxes meet the area threshold.
 def validate_grouped_bounding_boxes(bounding_box_group, area_threshold=0.5):
-    if len(bounding_box_group) == 1:
+    if len(bounding_box_group) <= 1:
         return True
 
     # Calculate sum of individual contour areas
@@ -303,6 +319,12 @@ def validate_grouped_bounding_boxes(bounding_box_group, area_threshold=0.5):
 # Get bounding boxes for digits in the provided image.
 def get_digit_bounding_boxes(image):
   pre_processed_image = pre_process_image(image)
+  try: 
+    # Save the decoded image to verify the file
+    cv2.imwrite('preprocessed_image.png', pre_processed_image)
+    print('Saved image')
+  except Exception as e:
+      print(f"Error saving image: {e}")
   return extract_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=False)
 
 # Extract digit bounding boxes from a pre-processed image.
@@ -347,11 +369,12 @@ def select_digit_images_from_image(image, digit_bounding_boxes, debug=False):
       plt.title('Detected Digit')
       plt.imshow(digit_image.copy(), cmap='gray')
       plt.show()
+  return digit_images
 
 # Process the image to extract digit images and their bounding boxes.
 def process_image(image, debug=False):
     pre_processed_image = pre_process_image(image, debug=debug)
-    digit_bounding_boxes = get_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=debug)
+    digit_bounding_boxes = extract_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=debug)
     return select_digit_images_from_image(pre_processed_image, digit_bounding_boxes, debug)
 
 # Predict digits from a given image using the processing pipeline.

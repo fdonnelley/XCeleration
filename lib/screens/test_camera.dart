@@ -77,7 +77,7 @@ class _CameraPageState extends State<CameraPage> {
           ),
           autoStart: true,
           cupertinoOptions: const CupertinoAnalysisOptions.bgra8888(),
-          maxFramesPerSecond: 20,
+          maxFramesPerSecond: 10,
         ),
         previewDecoratorBuilder: (state, preview) {
           _preview = preview;
@@ -190,17 +190,25 @@ class _CameraPageState extends State<CameraPage> {
   Future _analyzeImage(camerawesome.AnalysisImage img) async {
     // final inputImage = img.toInputImage();
 
-    try {
+    // try {
       
       final Uint8List imageBytes = await _getImageBytesFromInputImage(img);
       print('type: ${imageBytes.runtimeType}');
       // Get the green square coordinates
-      _greenSquareCoordinates = await _getGreenSquareCoordinates(imageBytes); // Call the new function
+      final greenSquares = await _getGreenSquareCoordinates(imageBytes);
+
+      setState(() {
+        _greenSquareCoordinates = greenSquares
+          .map((offsets) => offsets
+              .map((offset) => Offset(offset.dx + 120, offset.dy))
+              .toList())
+          .toList();
+          });
 
       // debugPrint("...sending image resulted with : ${faces?.length} faces");
-    } catch (error) {
-      debugPrint("...sending image resulted in error $error");
-    }
+    // } catch (error) {
+    //   debugPrint("...sending image resulted in error $error");
+    // }
   }
 }
 
@@ -220,42 +228,51 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
   final bytes = analysisImg.when(
     jpeg: (JpegImage image) {
       print('image is a jpeg');
-      return image.bytes; // Return JPEG bytes
+      return Uint8List.fromList(image.bytes); // Return JPEG bytes
     },
     nv21: (Nv21Image image) {
       print('image is a Nv21Image');
       // Convert NV21 format to bytes (you might need external libraries for proper conversion)
-      return image.planes[0].bytes; 
+      return Uint8List.fromList(image.planes[0].bytes); 
     },
     bgra8888: (Bgra8888Image image) {
       print('image is a Bgra8888Image');
+      print('image width: ${image.width}');
+      print('image height: ${image.height}');
       
       // Convert BGRA8888 to an image object
       final bgraBytes = image.planes[0].bytes;
-      final rgbaBytes = Uint8List(bgraBytes.length);
+      // final rgbaBytes = Uint8List(bgraBytes.length);
 
-      for (int i = 0; i < bgraBytes.length; i += 4) {
-        rgbaBytes[i] = bgraBytes[i + 2];     // Red
-        rgbaBytes[i + 1] = bgraBytes[i + 1]; // Green
-        rgbaBytes[i + 2] = bgraBytes[i];     // Blue
-        rgbaBytes[i + 3] = bgraBytes[i + 3]; // Alpha
-      }
+      // for (int i = 0; i < bgraBytes.length; i += 4) {
+      //   rgbaBytes[i] = bgraBytes[i + 2];     // Red
+      //   rgbaBytes[i + 1] = bgraBytes[i + 1]; // Green
+      //   rgbaBytes[i + 2] = bgraBytes[i];     // Blue
+      //   rgbaBytes[i + 3] = bgraBytes[i + 3]; // Alpha
+      // }
 
-      // Create an image from RGBA bytes
-      final imgImage = img.Image.fromBytes(
-        width: image.width,
-        height: image.height,
-        bytes: rgbaBytes.buffer,
-      );
+      // // Create an image from RGBA bytes
+      // final imgImage = img.Image.fromBytes(
+      //   width: image.width,
+      //   height: image.height,
+      //   bytes: rgbaBytes.buffer,
+      // );
 
-      // Convert the image to PNG bytes
-      final pngBytes1 = img.encodePng(imgImage);
+      // print(imgImage.data);
+      // print(rgbaBytes.length);
+
+      // // Convert the image to PNG bytes
+      // final pngBytes1 = img.encodePng(imgImage);
+      // print(pngBytes1.length);
       
-      // Save the PNG file
-      File("images/outputRGBA.png").writeAsBytesSync(pngBytes1);
+      // final directory = await getApplicationDocumentsDirectory();
+      // final filePath = '${directory.path}/outputRGBA.png';
+      // final filePath2 = '${directory.path}/output_image.png';
+      // // Save the PNG file
+      // File(filePath).writeAsBytesSync(pngBytes1);
 
-      img.Image bitmap = img.decodeImage(Uint8List.fromList(bgraBytes))!;
-      File("images/output_image.png").writeAsBytesSync(img.encodePng(bitmap));
+      // img.Image bitmap = img.decodeImage(Uint8List.fromList(bgraBytes))!;
+      // File(filePath2).writeAsBytesSync(img.encodePng(bitmap));
 
       // final imgImage = img.Image.fromBytes(
       //   width: image.width,
@@ -265,9 +282,9 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
       // );
       
       // Convert the image to PNG bytes
-      final pngBytes = img.encodePng(imgImage);
+      // final pngBytes = img.encodePng(imgImage);
       
-      return pngBytes; // Return the PNG byte array
+      return bgraBytes; // Return the PNG byte array
     },
     // // Add other cases if necessary
     // unknown: () {
@@ -280,8 +297,9 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
     throw("Failed to extract bytes from the image.");
     // return Uint8List.fromList([]);
   }
-  saveImage(Uint8List.fromList(bytes));
-  return Uint8List.fromList(bytes);
+  // saveImage(bytes);
+  print('byte length 1: ${bytes.length}');
+  return bytes;
 }
 
 class _MyPreviewDecoratorWidget extends StatelessWidget {
@@ -307,7 +325,7 @@ class _MyPreviewDecoratorWidget extends StatelessWidget {
 }
 
 class _GreenSquarePainter extends CustomPainter {
-  final List<List<Offset>>? greenSquareCoordinates;
+  List<List<Offset>>? greenSquareCoordinates;
   final camerawesome.Preview preview;
 
   _GreenSquarePainter({
@@ -317,6 +335,8 @@ class _GreenSquarePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    print('greenSquareCoordinates: $greenSquareCoordinates');
+    // greenSquareCoordinates = [[Offset(0.0, 414.0), Offset(30.0, 46.0)]];
     if (greenSquareCoordinates != null) {
       for (var coordinates in greenSquareCoordinates!) {
         if (coordinates.length == 2) {

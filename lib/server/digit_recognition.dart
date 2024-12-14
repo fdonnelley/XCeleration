@@ -41,7 +41,11 @@ Future<List<List<int>>> getDigitBoundingBoxes(Uint8List pictureBytes) async {
     final responseBody = await response.stream.bytesToString();
     final data = jsonDecode(responseBody);
     print('Result from Python: $data');
-    return data['coordinates'];
+    
+    final coordinatesList = (data['coordinates'] as List<dynamic>)
+      .map((e) => (e as List<dynamic>).map((i) => i as int).toList())
+      .toList();
+    return coordinatesList;
   } else {
     print('Failed to call Python function: ${response.statusCode}');
   }
