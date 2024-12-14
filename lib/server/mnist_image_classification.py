@@ -9,27 +9,22 @@ Original file is located at
 # Imports
 """
 
-# Commented out IPython magic to ensure Python compatibility.
 import numpy as np
 import matplotlib.pyplot as plt
-# %matplotlib inline
 import keras
 import tensorflow as tf
 from tensorflow.keras.models import load_model
-# from keras.layers import Input, Dense, Conv2D, Dropout, Flatten, MaxPooling2D, BatchNormalization
-# from sklearn.metrics import confusion_matrix
-# import seaborn as sns
-# from tensorflow.keras.preprocessing.image import ImageDataGenerator
-# from keras.preprocessing.image import load_img, img_to_array
-# from tensorflow.keras.optimizers import Adam
-# from keras.callbacks import ModelCheckpoint, EarlyStopping
 import cv2
-# from keras.datasets import mnist
-# from IPython.display import clear_output
 import os
 from flask import Flask, request, jsonify
 
 debug = False
+
+model_path = os.path.abspath("lib/server/models/mnist_model.keras")
+model = load_model(model_path)
+# model = load_model("models/mnist_model.keras")
+# model = load_model("/content/drive/MyDrive/MNIST Model/checkpoints/checkpoint_1.model.keras")
+print(model.summary())
 
 app = Flask(__name__)
 @app.route('/run-get_boxes', methods=['POST'])
@@ -138,11 +133,6 @@ def resize_image(image_array):
 
 # Predict digits from an array of images using the trained model.
 def predict_digits_from_arrays(image_arrays):
-  model_path = os.path.abspath("lib/server/models/mnist_model.keras")
-  model = load_model(model_path)
-  # model = load_model("models/mnist_model.keras")
-  # model = load_model("/content/drive/MyDrive/MNIST Model/checkpoints/checkpoint_1.model.keras")
-  print(model.summary())
   predictions = model.predict(image_arrays)
   digits = np.argmax(predictions, axis=1)
   confidences = np.max(predictions, axis=1)
@@ -246,50 +236,49 @@ def filter_contour(contour, pre_processed_image, debug=False):
 
   x, y, w, h = cv2.boundingRect(contour)
   area = w * h
-  if min_contour_area < area < max_contour_area:
-    # aspect ratio check
-    aspect_ratio = h / w if w > 0 else 0
-    if min_contour_aspect_ratio < aspect_ratio < max_contour_aspect_ratio:
-      # print(f'x: {x}. y: {y}. w: {w}. h: {h}')
-      y_start = max(0, y - contour_margin)
-      y_end = min(y + h + contour_margin, pre_processed_image.shape[0])
-      x_start = max(0, x - contour_margin)
-      x_end = min(x + w + contour_margin, pre_processed_image.shape[1])
-      padded_contour_area = pre_processed_image[y_start:y_end, x_start:x_end]
-      contour_area = pre_processed_image[y:y+h, x:x+w]
-      padded_contour_area_white_pixels = np.sum(padded_contour_area == 255)
-      padded_contour_area_total_pixels = padded_contour_area.size
-      contour_area_white_pixels = np.sum(contour_area == 255)
-      contour_area_total_pixels = contour_area.size
+  
+  # Check area and aspect ratio
+  if not (min_contour_area < area < max_contour_area):
+      return False
+  
+  # aspect ratio check
+  aspect_ratio = h / w if w > 0 else 0
+  if not (min_contour_aspect_ratio < aspect_ratio < max_contour_aspect_ratio):
+      return False
+  
+  contour_area = pre_processed_image[y:y+h, x:x+w]
+  
+  y_start = max(0, y - contour_margin)
+  y_end = min(y + h + contour_margin, pre_processed_image.shape[0])
+  x_start = max(0, x - contour_margin)
+  x_end = min(x + w + contour_margin, pre_processed_image.shape[1])
+  padded_contour_area = pre_processed_image[y_start:y_end, x_start:x_end]
+  padded_contour_area_white_pixels = np.sum(padded_contour_area == 255)
 
-      # Calculate the number of black pixels which will be the background color
-      black_pixels = np.sum(contour_area == 0)
-      total_pixels = contour_area.size
+  # Calculate the number of white and black pixels
+  contour_area_white_pixels = np.sum(contour_area == 255)
+  contour_area_black_pixels = np.sum(contour_area == 0)
+  contour_area_total_pixels = contour_area.size
+  
+  # Calculate the percentage of white and black pixels
+  black_percentage = contour_area_black_pixels / contour_area_total_pixels
+  white_percentage = contour_area_white_pixels / contour_area_total_pixels
+  
+  # Calculate the percentage of white pixels in the margins around the contour
+  margin_white_pixels = padded_contour_area_white_pixels - contour_area_white_pixels
+  margin_total_pixels = padded_contour_area.size - contour_area_total_pixels
+  
+  margin_white_percentage = margin_white_pixels / margin_total_pixels if margin_total_pixels > 0 else 0
 
-      # Calculate the number of white pixels which will be the digit  color
-      white_pixels = np.sum(contour_area == 255)
-      total_pixels = contour_area.size
-      
-      # Calculate the percentage of white and black pixels
-      black_percentage = black_pixels / total_pixels
-      white_percentage = white_pixels / total_pixels
-      
-      margin_white_pixels = padded_contour_area_white_pixels - contour_area_white_pixels
-      margin_total_pixels = padded_contour_area_total_pixels - contour_area_total_pixels
-      if margin_total_pixels != 0:
-        white_percentage = margin_white_pixels / margin_total_pixels
-      else:
-        white_percentage = 0
-
-      # Check if the box contains predominantly black pixels or has an unusual amount of white pixels in the margin
-      if white_percentage < contour_margins_max_white_threshold and black_percentage < black_pixel_threshold and white_percentage < white_pixel_threshold:
-        # print('contour area white percentage:', contour_area_white_pixels / contour_area_total_pixels)
-        # print('white_percentage:', white_percentage)
-        # print('black_percentage', black_percentage)
-        # print('black_pixel_threshold', black_pixel_threshold)
-        # print('white_percentage', white_percentage)
-        # print('white_pixel_threshold', white_pixel_threshold)
-        return True
+  # Check if the box contains predominantly black pixels or has an unusual amount of white pixels in the margin
+  if margin_white_percentage < contour_margins_max_white_threshold and black_percentage < black_pixel_threshold and white_percentage < white_pixel_threshold:
+    # print('contour area white percentage:', contour_area_white_pixels / contour_area_total_pixels)
+    # print('margin_white_percentage:', margin_white_percentage)
+    # print('black_percentage', black_percentage)
+    # print('black_pixel_threshold', black_pixel_threshold)
+    # print('white_percentage', white_percentage)
+    # print('white_pixel_threshold', white_pixel_threshold)
+    return True
   return False
 
 # Select and sort bounding boxes based on validation criteria.
