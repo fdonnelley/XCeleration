@@ -21,7 +21,7 @@ class CameraPage extends StatefulWidget {
 
 class _CameraPageState extends State<CameraPage> {
   camerawesome.Preview? _preview;
-  List<List<Offset>>? _greenSquareCoordinates; // Add a variable to hold the coordinates
+  List<List<int>>? _greenSquareCoordinates; // Add a variable to hold the coordinates
 
   @override
   void deactivate() {
@@ -32,12 +32,12 @@ class _CameraPageState extends State<CameraPage> {
   void dispose() {
     super.dispose();
   }
-  Future<List<List<Offset>>> _getGreenSquareCoordinates(Uint8List image) async {
-    final list_of_coordinates = await getDigitBoundingBoxes(image);
-    return list_of_coordinates.map((coordinates) => [
-      Offset(coordinates[0].toDouble(), coordinates[1].toDouble()),
-      Offset(coordinates[2].toDouble(), coordinates[3].toDouble())
-    ]).toList();
+  Future<List<List<int>>> _getGreenSquareCoordinates(Uint8List image) async {
+    return await getDigitBoundingBoxes(image);
+    // return list_of_coordinates.map((coordinates) => [
+    //   Offset(coordinates[0].toDouble(), coordinates[1].toDouble()),
+    //   Offset(coordinates[2].toDouble(), coordinates[3].toDouble())
+    // ]).toList();
   }
 
   @override
@@ -198,12 +198,12 @@ class _CameraPageState extends State<CameraPage> {
       final greenSquares = await _getGreenSquareCoordinates(imageBytes);
 
       setState(() {
-        _greenSquareCoordinates = greenSquares
-          .map((offsets) => offsets
-              .map((offset) => Offset(offset.dx + 120, offset.dy))
-              .toList())
-          .toList();
-          });
+        _greenSquareCoordinates = greenSquares;
+          // .map((offsets) => offsets
+          //     .map((offset) => Offset(offset.dx + 120, offset.dy))
+          //     .toList())
+          // .toList();
+      });
 
       // debugPrint("...sending image resulted with : ${faces?.length} faces");
     // } catch (error) {
@@ -305,7 +305,7 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
 class _MyPreviewDecoratorWidget extends StatelessWidget {
   final camerawesome.CameraState cameraState;
   final camerawesome.Preview preview;
-  final List<List<Offset>>? greenSquareCoordinates; // Accept the coordinates
+  final List<List<int>>? greenSquareCoordinates; // Accept the coordinates
 
   const _MyPreviewDecoratorWidget({
     required this.cameraState,
@@ -325,7 +325,7 @@ class _MyPreviewDecoratorWidget extends StatelessWidget {
 }
 
 class _GreenSquarePainter extends CustomPainter {
-  List<List<Offset>>? greenSquareCoordinates;
+  List<List<int>>? greenSquareCoordinates;
   final camerawesome.Preview preview;
 
   _GreenSquarePainter({
@@ -339,10 +339,12 @@ class _GreenSquarePainter extends CustomPainter {
     // greenSquareCoordinates = [[Offset(0.0, 414.0), Offset(30.0, 46.0)]];
     if (greenSquareCoordinates != null) {
       for (var coordinates in greenSquareCoordinates!) {
-        if (coordinates.length == 2) {
-          final topLeft = coordinates[0];
-          final bottomRight = coordinates[1];
-          final rect = Rect.fromPoints(topLeft, bottomRight);
+        if (coordinates.length == 4) {
+          final x = coordinates[0];
+          final y = coordinates[1];
+          final width = coordinates[2];
+          final height = coordinates[3];
+          final rect = Rect.fromLTWH(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble());
           canvas.drawRect(
             rect,
             Paint()
