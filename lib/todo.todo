@@ -3,6 +3,8 @@ add picture taking to record bib numbers with teo's model (parly done)
 make graphics look better (in progress)
 make it still work with fewer runners
 make the buttons size have a cap
+have time running
+remove log time button before race is started
 make it so that the app will automatically start the python flask app (basically done)
 maybe pass images with bib data and show them so that they can be compared to the actuall numbers
 make it so you don't lose everything when you switch pages

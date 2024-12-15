@@ -26,7 +26,7 @@ Future<String> predictDigitsFromPicture(XFile picture) async {
   return '';
 }
 
-Future<List<List<int>>> getDigitBoundingBoxes(Uint8List pictureBytes) async {
+Future<List<List<double>>> getDigitBoundingBoxes(Uint8List pictureBytes) async {
   final url = Uri.parse('http://192.168.1.121:5001/run-get_boxes');
 
   // Create a multipart request
@@ -43,7 +43,7 @@ Future<List<List<int>>> getDigitBoundingBoxes(Uint8List pictureBytes) async {
     print('Result from Python: $data');
     
     final coordinatesList = (data['coordinates'] as List<dynamic>)
-      .map((e) => (e as List<dynamic>).map((i) => i as int).toList())
+      .map((e) => (e as List<dynamic>).map((i) => i as double).toList())
       .toList();
     return coordinatesList;
   } else {

@@ -21,7 +21,7 @@ class CameraPage extends StatefulWidget {
 
 class _CameraPageState extends State<CameraPage> {
   camerawesome.Preview? _preview;
-  List<List<int>>? _greenSquareCoordinates; // Add a variable to hold the coordinates
+  List<List<double>>? _greenSquareCoordinates; // Add a variable to hold the coordinates
 
   @override
   void deactivate() {
@@ -32,7 +32,7 @@ class _CameraPageState extends State<CameraPage> {
   void dispose() {
     super.dispose();
   }
-  Future<List<List<int>>> _getGreenSquareCoordinates(Uint8List image) async {
+  Future<List<List<double>>> _getGreenSquareCoordinates(Uint8List image) async {
     return await getDigitBoundingBoxes(image);
     // return list_of_coordinates.map((coordinates) => [
     //   Offset(coordinates[0].toDouble(), coordinates[1].toDouble()),
@@ -88,6 +88,22 @@ class _CameraPageState extends State<CameraPage> {
                 greenSquareCoordinates: _greenSquareCoordinates,
                 preview: _preview!,
               );
+        },
+        bottomActionsBuilder: (state) {
+          return AwesomeBottomActions(
+            state: state,
+            onMediaTap: (mediaCapture) async {
+              final XFile image = await mediaCapture.captureRequest.when(
+                single: (SingleCaptureRequest request) async {
+                  final XFile img = request.file!; // Ensure you get the image from the request and assert it's not null
+                  return img;
+                },
+              );
+              final digits = predictDigitsFromPicture(image);
+              print('digits: $digits');
+              OpenFile.open(mediaCapture.captureRequest.path); // Open the captured media
+            },
+          );
         },
         topActionsBuilder: (state) {
           return Column(
@@ -147,17 +163,19 @@ class _CameraPageState extends State<CameraPage> {
         //     ],
         //   );
         // },
-        onMediaTap: (mediaCapture) async {
-          final XFile image = await mediaCapture.captureRequest.when(
-            single: (SingleCaptureRequest request) async {
-              final XFile img = request.file!; // Ensure you get the image from the request and assert it's not null
-              return img;
-            },
-          );
-          final digits = predictDigitsFromPicture(image);
-          print('digits: $digits');
-          OpenFile.open(mediaCapture.captureRequest.path); // Open the captured media
-        },
+        // onMediaTap: (mediaCapture) async {
+        //   print('predicting image1');
+        //   final XFile image = await mediaCapture.captureRequest.when(
+        //     single: (SingleCaptureRequest request) async {
+        //       final XFile img = request.file!; // Ensure you get the image from the request and assert it's not null
+        //       return img;
+        //     },
+        //   );
+        //   print('predicting image2');
+        //   final digits = predictDigitsFromPicture(image);
+        //   print('digits: $digits');
+        //   OpenFile.open(mediaCapture.captureRequest.path); // Open the captured media
+        // },
       ),
       // floatingActionButton: FloatingActionButton(
       //   onPressed: _captureImage, // Call the capture function
@@ -193,7 +211,7 @@ class _CameraPageState extends State<CameraPage> {
     // try {
       
       final Uint8List imageBytes = await _getImageBytesFromInputImage(img);
-      print('type: ${imageBytes.runtimeType}');
+      // print('type: ${imageBytes.runtimeType}');
       // Get the green square coordinates
       final greenSquares = await _getGreenSquareCoordinates(imageBytes);
 
@@ -217,7 +235,7 @@ Future<void> saveImage(Uint8List imageBytes) async {
     img.Image image = img.decodeImage(Uint8List.fromList(imageBytes))!;
     List<int> pngBytes = img.encodePng(image); // Convert to PNG
     File('output_image.png').writeAsBytesSync(pngBytes); // Save locally
-    print('Image saved successfully as output_image.png');
+    // print('Image saved successfully as output_image.png');
   } catch (e) {
     print('Error while saving image: $e');
   }
@@ -236,9 +254,9 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
       return Uint8List.fromList(image.planes[0].bytes); 
     },
     bgra8888: (Bgra8888Image image) {
-      print('image is a Bgra8888Image');
-      print('image width: ${image.width}');
-      print('image height: ${image.height}');
+      // print('image is a Bgra8888Image');
+      // print('image width: ${image.width}');
+      // print('image height: ${image.height}');
       
       // Convert BGRA8888 to an image object
       final bgraBytes = image.planes[0].bytes;
@@ -298,14 +316,13 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
     // return Uint8List.fromList([]);
   }
   // saveImage(bytes);
-  print('byte length 1: ${bytes.length}');
   return bytes;
 }
 
 class _MyPreviewDecoratorWidget extends StatelessWidget {
   final camerawesome.CameraState cameraState;
   final camerawesome.Preview preview;
-  final List<List<int>>? greenSquareCoordinates; // Accept the coordinates
+  final List<List<double>>? greenSquareCoordinates; // Accept the coordinates
 
   const _MyPreviewDecoratorWidget({
     required this.cameraState,
@@ -315,35 +332,54 @@ class _MyPreviewDecoratorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: CustomPaint(
-        painter: _GreenSquarePainter(greenSquareCoordinates: greenSquareCoordinates, preview: preview),
-        child: SizedBox.expand(), // Ensure the CustomPaint takes the full size
-      ),
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
+        print("Preview screen size: $size");
+        print("Preview screen preview.previewSize: ${preview.previewSize}");
+        print("Preview screen preview.nativePreviewSize: ${preview.nativePreviewSize}");
+        print("Preview screen preview.nativePreviewSize (height, width): ${preview.rect.height}, ${preview.rect.width}");
+        print('constraints.maxWidth: ${constraints.maxWidth}');
+        print('constraints.maxHeight: ${constraints.maxHeight}');
+
+        return IgnorePointer(
+          child: CustomPaint(
+            painter: _GreenSquarePainter(
+              greenSquareCoordinates: greenSquareCoordinates,
+              preview: preview,
+              previewSize: [constraints.maxWidth, constraints.maxHeight],
+            ),
+            child: SizedBox.expand(), // Ensure the CustomPaint takes the full size
+          ),
+        );
+      },
     );
   }
 }
 
 class _GreenSquarePainter extends CustomPainter {
-  List<List<int>>? greenSquareCoordinates;
+  List<List<double>>? greenSquareCoordinates;
   final camerawesome.Preview preview;
+  List<double> previewSize;
 
   _GreenSquarePainter({
     required this.greenSquareCoordinates,
     required this.preview,
+    required this.previewSize,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    print('greenSquareCoordinates: $greenSquareCoordinates');
+    // print('greenSquareCoordinates: $greenSquareCoordinates');
     // greenSquareCoordinates = [[Offset(0.0, 414.0), Offset(30.0, 46.0)]];
     if (greenSquareCoordinates != null) {
       for (var coordinates in greenSquareCoordinates!) {
         if (coordinates.length == 4) {
-          final x = coordinates[0];
-          final y = coordinates[1];
-          final width = coordinates[2];
-          final height = coordinates[3];
+          final x = coordinates[0] * previewSize[0];
+          final y = coordinates[1] * previewSize[1];
+          final width = coordinates[2] * previewSize[0];
+          final height = coordinates[3] * previewSize[1];
+          // print('Drawing box with coordinates - x:$x, y:$y, width:$width, height:$height');
           final rect = Rect.fromLTWH(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble());
           canvas.drawRect(
             rect,
