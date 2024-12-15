@@ -89,6 +89,22 @@ class _CameraPageState extends State<CameraPage> {
                 preview: _preview!,
               );
         },
+        bottomActionsBuilder: (state) {
+          return AwesomeBottomActions(
+            state: state,
+            onMediaTap: (mediaCapture) async {
+              final XFile image = await mediaCapture.captureRequest.when(
+                single: (SingleCaptureRequest request) async {
+                  final XFile img = request.file!; // Ensure you get the image from the request and assert it's not null
+                  return img;
+                },
+              );
+              final digits = predictDigitsFromPicture(image);
+              print('digits: $digits');
+              OpenFile.open(mediaCapture.captureRequest.path); // Open the captured media
+            },
+          );
+        },
         topActionsBuilder: (state) {
           return Column(
             children: [
@@ -147,19 +163,19 @@ class _CameraPageState extends State<CameraPage> {
         //     ],
         //   );
         // },
-        onMediaTap: (mediaCapture) async {
-          print('predicting image1');
-          final XFile image = await mediaCapture.captureRequest.when(
-            single: (SingleCaptureRequest request) async {
-              final XFile img = request.file!; // Ensure you get the image from the request and assert it's not null
-              return img;
-            },
-          );
-          print('predicting image2');
-          final digits = predictDigitsFromPicture(image);
-          print('digits: $digits');
-          OpenFile.open(mediaCapture.captureRequest.path); // Open the captured media
-        },
+        // onMediaTap: (mediaCapture) async {
+        //   print('predicting image1');
+        //   final XFile image = await mediaCapture.captureRequest.when(
+        //     single: (SingleCaptureRequest request) async {
+        //       final XFile img = request.file!; // Ensure you get the image from the request and assert it's not null
+        //       return img;
+        //     },
+        //   );
+        //   print('predicting image2');
+        //   final digits = predictDigitsFromPicture(image);
+        //   print('digits: $digits');
+        //   OpenFile.open(mediaCapture.captureRequest.path); // Open the captured media
+        // },
       ),
       // floatingActionButton: FloatingActionButton(
       //   onPressed: _captureImage, // Call the capture function
