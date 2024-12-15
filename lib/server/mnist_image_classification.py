@@ -251,8 +251,6 @@ def pre_process_image(image, debug=False):
 def filter_contour(contour, pre_processed_image, debug=False):
   min_contour_area = pre_processed_image.shape[0] / 15 * pre_processed_image.shape[1] / 15
   max_contour_area = pre_processed_image.shape[0] / 3 * pre_processed_image.shape[1] / 3
-  # print("max_contour_area:", max_contour_area)
-  # print("min_contour_area:", min_contour_area)
   min_contour_aspect_ratio = 0.9
   max_contour_aspect_ratio = 8.0
   contour_margin = 20
