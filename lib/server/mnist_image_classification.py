@@ -172,7 +172,7 @@ def crop_image(image, debug=False):
   if debug:
     plt.figure(figsize=(10, 5))
     plt.title('Blurred Image to show Crop')
-    plt.imshow(blur_image(image.copy(), crop_width))
+    plt.imshow(blur_image(image, crop_width))
     plt.show()
   image = image[:, crop_width: -crop_width]
   return image
@@ -186,7 +186,8 @@ def pre_process_image(image, debug=False):
   # gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
   # Step 1: Initial preprocessing with adaptive thresholding instead of Otsu
-  blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+  blurred = cv2.GaussianBlur(gray, (25, 25), 0)
+  # blurred = cv2.fastNlMeansDenoising(gray, None, h=50, templateWindowSize=7, searchWindowSize=21)
   binary_full = cv2.adaptiveThreshold(
     blurred,
     255,
@@ -198,10 +199,9 @@ def pre_process_image(image, debug=False):
 
   # Apply morphological operations to connect components
   kernel = np.ones((5,5), np.uint8)
-  binary_full = cv2.dilate(binary_full, kernel, iterations=1)
-  binary_full = cv2.erode(binary_full, kernel, iterations=1)
-  kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))  # Kernel size determines removal size
-  binary_full_cleaned = cv2.morphologyEx(binary_full, cv2.MORPH_OPEN, kernel)
+  binary_full_cleaned = cv2.morphologyEx(binary_full, cv2.MORPH_CLOSE, kernel, iterations=2)
+  # kernel = np.ones((3,3), np.uint8)
+  binary_full_cleaned = cv2.morphologyEx(binary_full_cleaned, cv2.MORPH_OPEN, kernel, iterations=1)
 
   if debug:
     plt.figure(figsize=(15, 5))
@@ -223,15 +223,16 @@ def pre_process_image(image, debug=False):
 
 # Filter contours based on area and aspect ratio criteria.
 def filter_contour(contour, pre_processed_image, debug=False):
-  min_contour_area = 800
+  min_contour_area = pre_processed_image.shape[0] / 15 * pre_processed_image.shape[1] / 15
   max_contour_area = pre_processed_image.shape[0] / 3 * pre_processed_image.shape[1] / 3
-  print("max_contour_area:", max_contour_area)
-  min_contour_aspect_ratio = 0.8
+  # print("max_contour_area:", max_contour_area)
+  # print("min_contour_area:", min_contour_area)
+  min_contour_aspect_ratio = 0.9
   max_contour_aspect_ratio = 8.0
   contour_margin = 20
-  contour_margins_max_white_threshold = 0.09 # Threshold for white pixels around the contour
-  black_pixel_threshold = 0.95  # Threshold for majority white pixels
-  white_pixel_threshold = 0.99  # Threshold for majority white pixels
+  contour_margins_max_white_threshold = 0.08 # Threshold for white pixels around the contour
+  max_black_pixel_threshold = 0.8  # Max threshold for majority black pixels
+  min_black_pixel_threshold = 0.4  # Min threshold for majority white pixels
   # contour_area_max_white_threshold = 0.7
 
   x, y, w, h = cv2.boundingRect(contour)
@@ -271,7 +272,7 @@ def filter_contour(contour, pre_processed_image, debug=False):
   margin_white_percentage = margin_white_pixels / margin_total_pixels if margin_total_pixels > 0 else 0
 
   # Check if the box contains predominantly black pixels or has an unusual amount of white pixels in the margin
-  if margin_white_percentage < contour_margins_max_white_threshold and black_percentage < black_pixel_threshold and white_percentage < white_pixel_threshold:
+  if margin_white_percentage < contour_margins_max_white_threshold and black_percentage < max_black_pixel_threshold and black_percentage > min_black_pixel_threshold:
     # print('contour area white percentage:', contour_area_white_pixels / contour_area_total_pixels)
     # print('margin_white_percentage:', margin_white_percentage)
     # print('black_percentage', black_percentage)
@@ -299,7 +300,7 @@ def select_and_sort_bounding_boxes(bounding_boxes, debug=False):
   return max(bounding_box_groups, key=len) if bounding_box_groups else []
 
 # Validate if the grouped bounding boxes meet the area threshold.
-def validate_grouped_bounding_boxes(bounding_box_group, area_threshold=0.5):
+def validate_grouped_bounding_boxes(bounding_box_group, area_threshold=0.4):
     if len(bounding_box_group) <= 1:
         return True
 
@@ -370,7 +371,7 @@ def select_digit_images_from_image(image, digit_bounding_boxes, debug=False):
     if debug:
       plt.figure(figsize=(4, 2))
       plt.title('Detected Digit')
-      plt.imshow(digit_image.copy(), cmap='gray')
+      plt.imshow(digit_image, cmap='gray')
       plt.show()
   return digit_images
 
