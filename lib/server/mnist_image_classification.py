@@ -24,14 +24,15 @@ model_path = os.path.abspath("lib/server/models/mnist_model.keras")
 model = load_model(model_path)
 # model = load_model("models/mnist_model.keras")
 # model = load_model("/content/drive/MyDrive/MNIST Model/checkpoints/checkpoint_1.model.keras")
-print(model.summary())
+# print(model.summary())
 
 app = Flask(__name__)
 @app.route('/run-get_boxes', methods=['POST'])
 def get_boxes():
   # Get the uploaded file
   cv_image = get_uploaded_image(request)
-  coordinates = get_digit_bounding_boxes(cv_image)
+  # print("image size:", cv_image.shape)
+  coordinates = convert_to_percentage(get_digit_bounding_boxes(cv_image), cv_image.shape[0], cv_image.shape[1])
   return jsonify({"coordinates": coordinates})
 
 
@@ -42,6 +43,31 @@ def find_digits():
   result = predict_digits_from_picture(cv_image)
   print("result:", result)
   return format_digits_and_confidences_to_response(result[0], result[1])
+
+# Converts bounding box coordinates to percentages of the image height and width.
+def convert_to_percentage(coordinates, img_height, img_width):
+    if img_height == 0 or img_width == 0:
+        raise ValueError("Image height and width must be greater than 0")
+
+    percentage_coordinates = []
+
+    crop_ajustment = img_width / min(200, img_width/3)
+
+    for box in coordinates:
+        x, y, width, height = box
+        x_percent = x / img_width * crop_ajustment
+        y_percent = y / img_height
+        width_percent = width / img_width
+        height_percent = height / img_height
+
+        percentage_coordinates.append([
+            round(x_percent, 3),
+            round(y_percent, 3),
+            round(width_percent, 3),
+            round(height_percent, 3),
+        ])
+
+    return percentage_coordinates
 
 # Retrieve and process the uploaded image from the request.
 def get_uploaded_image(request):
@@ -62,10 +88,10 @@ def get_uploaded_image(request):
 
   # Convert bytes to an OpenCV image
   nparr = np.frombuffer(file_bytes, dtype=np.uint8)
-  print(f"nparr dtype: {nparr.dtype}, shape: {nparr.shape}")
+  # print(f"nparr dtype: {nparr.dtype}, shape: {nparr.shape}")
   cv_image = nparr.reshape((height, width, 4))
   # cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-  print(cv_image.shape)
+  # print(cv_image.shape)
 
   # cv_image2 = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)  # Use IMREAD_UNCHANGED for 4-channel images
   # if cv_image2 is None:
@@ -75,7 +101,7 @@ def get_uploaded_image(request):
   try: 
       # Save the decoded image to verify the file
       cv2.imwrite('received_image2.png', cv2.cvtColor(cv_image, cv2.COLOR_RGBA2RGB))
-      print('Saved image')
+      # print('Saved image')
   except Exception as e:
       print(f"Error saving image: {e}")
   return cv2.cvtColor(cv_image, cv2.COLOR_RGBA2RGB)
@@ -87,8 +113,8 @@ def format_digits_and_confidences_to_response(digits, confidences):
   number = ''.join(numbers_array_str)
   print(confidences_array_str, number)
   return jsonify({"number": number, 'confidences': confidences_array_str})
-"""# Visualize Examples"""
 
+"""# Visualize Examples"""
 # Visualize a given MNIST image with a title.
 def visualize_mnist_image(image, title='MNIST Image'):
   plt.figure(figsize=(10, 5))
@@ -225,7 +251,6 @@ def pre_process_image(image, debug=False):
 def filter_contour(contour, pre_processed_image, debug=False):
   min_contour_area = 800
   max_contour_area = pre_processed_image.shape[0] / 3 * pre_processed_image.shape[1] / 3
-  print("max_contour_area:", max_contour_area)
   min_contour_aspect_ratio = 0.8
   max_contour_aspect_ratio = 8.0
   contour_margin = 20
@@ -325,7 +350,7 @@ def get_digit_bounding_boxes(image):
   try: 
     # Save the decoded image to verify the file
     cv2.imwrite('preprocessed_image.png', pre_processed_image)
-    print('Saved image')
+    # print('Saved image')
   except Exception as e:
       print(f"Error saving image: {e}")
   return extract_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=False)
