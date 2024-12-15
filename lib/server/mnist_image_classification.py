@@ -76,28 +76,15 @@ def get_uploaded_image(request):
   
   file = request.files['image']
   file_bytes = file.read()
-  width = 720
-  height = 1280
-  # try: 
-  #   # Save the received bytes to verify the file
-  #   with open('received_image.png', 'wb') as f:
-  #       f.write(file_bytes)
-  #   print('saved image')
-  # except:
-  #   pass
-
+  
   # Convert bytes to an OpenCV image
   nparr = np.frombuffer(file_bytes, dtype=np.uint8)
-  # print(f"nparr dtype: {nparr.dtype}, shape: {nparr.shape}")
-  cv_image = nparr.reshape((height, width, 4))
-  # cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-  # print(cv_image.shape)
-
-  # cv_image2 = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)  # Use IMREAD_UNCHANGED for 4-channel images
-  # if cv_image2 is None:
-  #     raise ValueError("Failed to decode image. Check the input bytes.")
-  # print(cv_image2.shape)
-
+  cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)  # Use IMREAD_COLOR since we're sending PNG
+  
+  if cv_image is None:
+      print("Failed to decode image. Input bytes length:", len(file_bytes))
+      raise ValueError("Failed to decode image. Check the input bytes.")
+  
   try: 
       # Save the decoded image to verify the file
       cv2.imwrite('received_image2.png', cv2.cvtColor(cv_image, cv2.COLOR_RGBA2RGB))

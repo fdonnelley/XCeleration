@@ -53,8 +53,10 @@ class _CameraPageState extends State<CameraPage> {
             if (sensors.length == 1) {
               final String filePath =
                   '${testDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+              print('Creating single capture request with path: $filePath');
               return SingleCaptureRequest(filePath, sensors.first);
             } else {
+              print('Creating multiple capture request');
               return MultipleCaptureRequest(
                 {
                   for (final sensor in sensors)
@@ -69,18 +71,70 @@ class _CameraPageState extends State<CameraPage> {
         sensorConfig: camerawesome.SensorConfig.single(
           sensor: camerawesome.Sensor.position(camerawesome.SensorPosition.back),
           aspectRatio: camerawesome.CameraAspectRatios.ratio_1_1,
+          flashMode: camerawesome.FlashMode.auto,
         ),
+        enablePhysicalButton: true,
         onImageForAnalysis: (img) => _analyzeImage(img),
-        imageAnalysisConfig: camerawesome.AnalysisConfig(
-          androidOptions: const camerawesome.AndroidAnalysisOptions.nv21(
-            width: 250,
-          ),
-          autoStart: true,
-          cupertinoOptions: const CupertinoAnalysisOptions.bgra8888(),
-          maxFramesPerSecond: 10,
-        ),
+        // imageAnalysisConfig: camerawesome.AnalysisConfig(
+        //   androidOptions: const camerawesome.AndroidAnalysisOptions.nv21(
+        //     width: 250,
+        //   ),
+        //   autoStart: true,
+        //   cupertinoOptions: const CupertinoAnalysisOptions.bgra8888(),
+        //   maxFramesPerSecond: 10,
+        // ),
+        onMediaCaptureEvent: (event) async {
+          print('Media capture event: ${event.status}');
+          switch ((event.status, event.isPicture, event.isVideo)) {
+            case (MediaCaptureStatus.capturing, true, false):
+              print('Taking picture...');
+              break;
+            case (MediaCaptureStatus.success, true, false):
+              print('Picture taken successfully');
+                event.captureRequest.when(
+                  single: (SingleCaptureRequest request) async {
+                    // print('Single capture request received');
+                    // await photoState.takePhoto();
+                    // print('Photo taken successfully');
+                    final file = request.file;
+                    if (file == null) {
+                      print('Error: No file captured');
+                      return null;
+                    }
+                    try {
+                        final digits = await predictDigitsFromPicture(file);
+                        print('Digit prediction successful! Predicted digits: $digits');
+                      } catch (e) {
+                        print('Error predicting digits: $e');
+                      }
+                      try {
+                        print('Opening image file...');
+                        await OpenFile.open(file.path);
+                      } catch (e) {
+                        print('Error opening file: $e');
+                      }
+                      return file;
+                  },
+                  // multiple: (MultipleCaptureRequest request) async {
+                  //   print('Multiple capture request received');
+                    // await photoState.takePhoto();
+                    // print('Photo taken successfully');
+                    // final file = request.fileBySensor.values.first;
+                    // print('Multiple capture file path: ${file?.path}');
+                    // return file;
+                  // },
+                );
+              break;
+            case (MediaCaptureStatus.failure, true, false):
+              print('Failed to take picture: ${event.exception}');
+              break;
+            default:
+              print('Unknown event: $event');
+          }
+        },
         previewDecoratorBuilder: (state, preview) {
           _preview = preview;
+          _greenSquareCoordinates?.add([0, 0, 1, 1]);
           // This will be shown above the preview (in a Stack)
           // It could be used in combination with MLKit to draw filters on faces for example
           return _MyPreviewDecoratorWidget(
@@ -89,22 +143,87 @@ class _CameraPageState extends State<CameraPage> {
                 preview: _preview!,
               );
         },
-        bottomActionsBuilder: (state) {
-          return AwesomeBottomActions(
-            state: state,
-            onMediaTap: (mediaCapture) async {
-              final XFile image = await mediaCapture.captureRequest.when(
-                single: (SingleCaptureRequest request) async {
-                  final XFile img = request.file!; // Ensure you get the image from the request and assert it's not null
-                  return img;
-                },
-              );
-              final digits = predictDigitsFromPicture(image);
-              print('digits: $digits');
-              OpenFile.open(mediaCapture.captureRequest.path); // Open the captured media
-            },
-          );
-        },
+        // bottomActionsBuilder: (state) {
+        //   // print('Building bottom actions with state: ${state.captureMode}');
+        //   return AwesomeBottomActions(
+        //     state: state,
+        //     onMediaTap: (mediaCapture) async {
+        //       print('Bottom actions onMediaTap called');
+        //       try {
+        //         print('Taking picture...');
+        //         await state.when(
+        //           onPhotoMode: (photoState) async {
+        //             print('In photo mode, taking picture');
+        //             try {
+        //               print('Capture request type: ${mediaCapture.captureRequest.runtimeType}');
+        //               final XFile? image = await mediaCapture.captureRequest.when(
+        //                 single: (SingleCaptureRequest request) async {
+        //                   print('Single capture request received');
+        //                   await photoState.takePhoto();
+        //                   print('Photo taken successfully');
+        //                   final file = request.file;
+        //                   if (file == null) {
+        //                     print('Error: No file captured');
+        //                     return null;
+        //                   }
+        //                   print('Single capture file path: ${file.path}');
+        //                   try {
+        //                     print('Attempting to predict digits...');
+        //                     final digits = await predictDigitsFromPicture(file);
+        //                     print('Digit prediction successful! Predicted digits: $digits');
+        //                   } catch (e) {
+        //                     print('Error predicting digits: $e');
+        //                   }
+        //                   try {
+        //                     print('Opening image file...');
+        //                     await OpenFile.open(file.path);
+        //                   } catch (e) {
+        //                     print('Error opening file: $e');
+        //                   }
+        //                   return file;
+        //                 },
+        //                 multiple: (MultipleCaptureRequest request) async {
+        //                   print('Multiple capture request received');
+        //                   await photoState.takePhoto();
+        //                   print('Photo taken successfully');
+        //                   final file = request.fileBySensor.values.first;
+        //                   print('Multiple capture file path: ${file?.path}');
+        //                   return file;
+        //                 },
+        //               );
+        //               print('checking to see if code reached here. image: $image');
+                      
+        //               if (image != null) {
+        //                 print('Image captured successfully: ${image.path}');
+        //                 print('Starting digit prediction...');
+        //                 try {
+        //                   final digits = await predictDigitsFromPicture(image);
+        //                   print('Digit prediction successful! Predicted digits: $digits');
+        //                   print('Opening image file...');
+        //                   await OpenFile.open(image.path);
+        //                 } catch (e) {
+        //                   print('Error during digit prediction or file opening: $e');
+        //                 }
+        //               } else {
+        //                 print('Error: No image captured');
+        //               }
+        //             } catch (e) {
+        //               print('Error taking photo: $e');
+        //             }
+        //           },
+        //           onVideoMode: (videoState) {
+        //             print('Error: In video mode, should be in photo mode');
+        //           },
+        //           onPreparingCamera: (preparingState) {
+        //             print('Error: Camera is still preparing');
+        //           },
+        //         );
+        //       } catch (e) {
+        //         print('Error in onMediaTap: $e');
+        //       }
+        //     },
+        //   );
+        // },
         topActionsBuilder: (state) {
           return Column(
             children: [
@@ -132,50 +251,6 @@ class _CameraPageState extends State<CameraPage> {
             ],
           );
         },
-        // builder: (state, preview) {
-        //   _preview = preview;
-        //   return Stack(
-        //     children: [
-        //       Positioned(
-        //         top: 16,
-        //         right: 16,
-        //         child: AwesomeCameraSwitchButton(
-        //           state: state,
-        //           scale: 1.5,
-        //           theme: AwesomeTheme(
-        //             buttonTheme: AwesomeButtonTheme(
-        //               iconSize: 28,
-        //               padding: const EdgeInsets.all(8),
-        //               foregroundColor: Colors.black,
-        //               backgroundColor: Colors.white,
-        //             ),
-        //           ),
-        //           onSwitchTap: (state) {
-        //             state.switchCameraSensor(
-        //               aspectRatio: state.sensorConfig.aspectRatio,
-        //             );
-        //           },
-        //           iconBuilder: () {
-        //             return Icon(Icons.camera_alt);
-        //           },
-        //         ),
-        //       ),
-        //     ],
-        //   );
-        // },
-        // onMediaTap: (mediaCapture) async {
-        //   print('predicting image1');
-        //   final XFile image = await mediaCapture.captureRequest.when(
-        //     single: (SingleCaptureRequest request) async {
-        //       final XFile img = request.file!; // Ensure you get the image from the request and assert it's not null
-        //       return img;
-        //     },
-        //   );
-        //   print('predicting image2');
-        //   final digits = predictDigitsFromPicture(image);
-        //   print('digits: $digits');
-        //   OpenFile.open(mediaCapture.captureRequest.path); // Open the captured media
-        // },
       ),
       // floatingActionButton: FloatingActionButton(
       //   onPressed: _captureImage, // Call the capture function
@@ -244,8 +319,33 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
       return Uint8List.fromList(image.planes[0].bytes);
     },
     bgra8888: (Bgra8888Image image) {
-      return image.planes[0].bytes;
+      final bgraBytes = image.planes[0].bytes;
+      final rgbaBytes = Uint8List(bgraBytes.length);
+
+      // Convert BGRA to RGBA
+      for (int i = 0; i < bgraBytes.length; i += 4) {
+        rgbaBytes[i] = bgraBytes[i + 2];     // Red
+        rgbaBytes[i + 1] = bgraBytes[i + 1]; // Green
+        rgbaBytes[i + 2] = bgraBytes[i];     // Blue
+        rgbaBytes[i + 3] = bgraBytes[i + 3]; // Alpha
+      }
+
+      // Create an image from RGBA bytes
+      final imgImage = img.Image.fromBytes(
+        width: image.width,
+        height: image.height,
+        bytes: rgbaBytes.buffer,
+        numChannels: 4,
+      );
+
+      // Encode as PNG
+      return Uint8List.fromList(img.encodePng(imgImage));
     },
+    // // Add other cases if necessary
+    // unknown: () {
+    //   print("Unknown image format");
+    //   return null;
+    // },
   );
 
   if (bytes == null) {
@@ -272,6 +372,18 @@ class _MyPreviewDecoratorWidget extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
+        // print("Preview screen size: $size");
+        // print("Preview screen preview.previewSize: ${preview.previewSize}");
+        // print("Preview screen preview.nativePreviewSize: ${preview.nativePreviewSize}");
+        // print("Preview screen preview.nativePreviewSize (height, width): ${preview.rect.height}, ${preview.rect.width}");
+        // print('constraints.maxWidth: ${constraints.maxWidth}');
+        // print('constraints.maxHeight: ${constraints.maxHeight}');
+        print("Preview screen size: $size");
+        print("Preview screen preview.previewSize: ${preview.previewSize}");
+        print("Preview screen preview.nativePreviewSize: ${preview.nativePreviewSize}");
+        print("Preview screen preview.nativePreviewSize (height, width): ${preview.rect.height}, ${preview.rect.width}");
+        print('constraints.maxWidth: ${constraints.maxWidth}');
+        print('constraints.maxHeight: ${constraints.maxHeight}');
         final quarterWidth = constraints.maxWidth / 4;
 
         return Stack(
@@ -342,6 +454,9 @@ class _GreenSquarePainter extends CustomPainter {
     if (greenSquareCoordinates != null) {
       for (var coordinates in greenSquareCoordinates!) {
         if (coordinates.length == 4) {
+          print('canvas size: $size');
+          print('canvas size: ${canvas.getLocalClipBounds()}');
+          print('previewSize: $previewSize');
           final x = coordinates[0] * previewSize[0];
           final y = coordinates[1] * previewSize[1];
           final width = coordinates[2] * previewSize[0];
