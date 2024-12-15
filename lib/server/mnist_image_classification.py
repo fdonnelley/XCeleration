@@ -51,11 +51,11 @@ def convert_to_percentage(coordinates, img_height, img_width):
 
     percentage_coordinates = []
 
-    crop_ajustment = img_width / min(200, img_width/3)
+    crop_ajustment = .25
 
     for box in coordinates:
         x, y, width, height = box
-        x_percent = x / img_width * crop_ajustment
+        x_percent = x / img_width + crop_ajustment
         y_percent = y / img_height
         width_percent = width / img_width
         height_percent = height / img_height
