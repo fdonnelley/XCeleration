@@ -10,7 +10,7 @@ Process? _flaskProcess;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await startFlaskServer();
+  // await startFlaskServer();
   runApp(
     ChangeNotifierProvider(
       create: (context) => TimingData(),
