@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-
+import 'dart:ui' as ui;
 
 class CameraPage extends StatefulWidget {
   const CameraPage({super.key});
@@ -217,16 +217,7 @@ class _CameraPageState extends State<CameraPage> {
 
       setState(() {
         _greenSquareCoordinates = greenSquares;
-          // .map((offsets) => offsets
-          //     .map((offset) => Offset(offset.dx + 120, offset.dy))
-          //     .toList())
-          // .toList();
       });
-
-      // debugPrint("...sending image resulted with : ${faces?.length} faces");
-    // } catch (error) {
-    //   debugPrint("...sending image resulted in error $error");
-    // }
   }
 }
 
@@ -246,69 +237,15 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
   final bytes = analysisImg.when(
     jpeg: (JpegImage image) {
       print('image is a jpeg');
-      return Uint8List.fromList(image.bytes); // Return JPEG bytes
+      return Uint8List.fromList(image.bytes);
     },
     nv21: (Nv21Image image) {
       print('image is a Nv21Image');
-      // Convert NV21 format to bytes (you might need external libraries for proper conversion)
-      return Uint8List.fromList(image.planes[0].bytes); 
+      return Uint8List.fromList(image.planes[0].bytes);
     },
     bgra8888: (Bgra8888Image image) {
-      // print('image is a Bgra8888Image');
-      // print('image width: ${image.width}');
-      // print('image height: ${image.height}');
-      
-      // Convert BGRA8888 to an image object
-      final bgraBytes = image.planes[0].bytes;
-      // final rgbaBytes = Uint8List(bgraBytes.length);
-
-      // for (int i = 0; i < bgraBytes.length; i += 4) {
-      //   rgbaBytes[i] = bgraBytes[i + 2];     // Red
-      //   rgbaBytes[i + 1] = bgraBytes[i + 1]; // Green
-      //   rgbaBytes[i + 2] = bgraBytes[i];     // Blue
-      //   rgbaBytes[i + 3] = bgraBytes[i + 3]; // Alpha
-      // }
-
-      // // Create an image from RGBA bytes
-      // final imgImage = img.Image.fromBytes(
-      //   width: image.width,
-      //   height: image.height,
-      //   bytes: rgbaBytes.buffer,
-      // );
-
-      // print(imgImage.data);
-      // print(rgbaBytes.length);
-
-      // // Convert the image to PNG bytes
-      // final pngBytes1 = img.encodePng(imgImage);
-      // print(pngBytes1.length);
-      
-      // final directory = await getApplicationDocumentsDirectory();
-      // final filePath = '${directory.path}/outputRGBA.png';
-      // final filePath2 = '${directory.path}/output_image.png';
-      // // Save the PNG file
-      // File(filePath).writeAsBytesSync(pngBytes1);
-
-      // img.Image bitmap = img.decodeImage(Uint8List.fromList(bgraBytes))!;
-      // File(filePath2).writeAsBytesSync(img.encodePng(bitmap));
-
-      // final imgImage = img.Image.fromBytes(
-      //   width: image.width,
-      //   height: image.height,
-      //   bytes: bgraBytes.buffer,
-      //   format: img.Format.bgra, // Ensure to use the correct format
-      // );
-      
-      // Convert the image to PNG bytes
-      // final pngBytes = img.encodePng(imgImage);
-      
-      return bgraBytes; // Return the PNG byte array
+      return image.planes[0].bytes;
     },
-    // // Add other cases if necessary
-    // unknown: () {
-    //   print("Unknown image format");
-    //   return null;
-    // },
   );
 
   if (bytes == null) {
@@ -322,12 +259,12 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
 class _MyPreviewDecoratorWidget extends StatelessWidget {
   final camerawesome.CameraState cameraState;
   final camerawesome.Preview preview;
-  final List<List<double>>? greenSquareCoordinates; // Accept the coordinates
+  final List<List<double>>? greenSquareCoordinates;
 
   const _MyPreviewDecoratorWidget({
     required this.cameraState,
     required this.preview,
-    required this.greenSquareCoordinates, // Pass the coordinates in the constructor
+    required this.greenSquareCoordinates,
   });
 
   @override
@@ -335,22 +272,52 @@ class _MyPreviewDecoratorWidget extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
-        print("Preview screen size: $size");
-        print("Preview screen preview.previewSize: ${preview.previewSize}");
-        print("Preview screen preview.nativePreviewSize: ${preview.nativePreviewSize}");
-        print("Preview screen preview.nativePreviewSize (height, width): ${preview.rect.height}, ${preview.rect.width}");
-        print('constraints.maxWidth: ${constraints.maxWidth}');
-        print('constraints.maxHeight: ${constraints.maxHeight}');
+        final quarterWidth = constraints.maxWidth / 4;
 
-        return IgnorePointer(
-          child: CustomPaint(
-            painter: _GreenSquarePainter(
-              greenSquareCoordinates: greenSquareCoordinates,
-              preview: preview,
-              previewSize: [constraints.maxWidth, constraints.maxHeight],
+        return Stack(
+          children: [
+            // Left blur
+            Positioned(
+              left: 0,
+              top: 0,
+              width: quarterWidth,
+              height: constraints.maxHeight,
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                  child: Container(
+                    color: Colors.transparent,
+                  ),
+                ),
+              ),
             ),
-            child: SizedBox.expand(), // Ensure the CustomPaint takes the full size
-          ),
+            // Right blur
+            Positioned(
+              right: 0,
+              top: 0,
+              width: quarterWidth,
+              height: constraints.maxHeight,
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                  child: Container(
+                    color: Colors.transparent,
+                  ),
+                ),
+              ),
+            ),
+            // Original green squares painter
+            IgnorePointer(
+              child: CustomPaint(
+                painter: _GreenSquarePainter(
+                  greenSquareCoordinates: greenSquareCoordinates,
+                  preview: preview,
+                  previewSize: [constraints.maxWidth, constraints.maxHeight],
+                ),
+                child: SizedBox.expand(),
+              ),
+            ),
+          ],
         );
       },
     );

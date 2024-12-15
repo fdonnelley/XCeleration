@@ -20,11 +20,11 @@ from flask import Flask, request, jsonify
 
 debug = False
 
-model_path = os.path.abspath("lib/server/models/mnist_model.keras")
-model = load_model(model_path)
-# model = load_model("models/mnist_model.keras")
-# model = load_model("/content/drive/MyDrive/MNIST Model/checkpoints/checkpoint_1.model.keras")
-# print(model.summary())
+def load_model_from_file(file_path):
+  model_path = os.path.abspath(file_path)
+  return load_model(model_path)
+
+model = load_model_from_file("lib/server/models/mnist_model.keras")
 
 app = Flask(__name__)
 @app.route('/run-get_boxes', methods=['POST'])
@@ -194,7 +194,7 @@ def blur_image(image, blur_width):
 
 # Crop the image to remove unnecessary parts based on the width.
 def crop_image(image, debug=False):
-  crop_width = min(200, image.shape[1]/3)
+  crop_width = image.shape[1]/4
   if debug:
     plt.figure(figsize=(10, 5))
     plt.title('Blurred Image to show Crop')
@@ -211,7 +211,7 @@ def pre_process_image(image, debug=False):
   gray = cv2.cvtColor(cropped_image, cv2.COLOR_RGB2GRAY)
   # gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
-  # Step 1: Initial preprocessing with adaptive thresholding instead of Otsu
+  # Step 1: Initial preprocessing with adaptive thresholding
   blurred = cv2.GaussianBlur(gray, (25, 25), 0)
   # blurred = cv2.fastNlMeansDenoising(gray, None, h=50, templateWindowSize=7, searchWindowSize=21)
   binary_full = cv2.adaptiveThreshold(
@@ -257,7 +257,6 @@ def filter_contour(contour, pre_processed_image, debug=False):
   contour_margins_max_white_threshold = 0.08 # Threshold for white pixels around the contour
   max_black_pixel_threshold = 0.8  # Max threshold for majority black pixels
   min_black_pixel_threshold = 0.4  # Min threshold for majority white pixels
-  # contour_area_max_white_threshold = 0.7
 
   x, y, w, h = cv2.boundingRect(contour)
   area = w * h
