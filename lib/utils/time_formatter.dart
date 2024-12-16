@@ -12,3 +12,15 @@ String formatDuration(Duration duration) {
     return seconds;
   }
 }
+
+String formatDurationWithZeros(Duration duration) {
+  final hours = duration.inHours;
+  final hoursString = hours.toString().padLeft(2, '0');
+  final minutes = (duration.inMinutes % 60);
+  
+  final minutesString = minutes.toString().padLeft(2, '0');
+  final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2); // Round to 2 decimal places
+  final secondsString = seconds.padLeft(5, '0');
+  
+  return '$hoursString:$minutesString:$secondsString';
+}

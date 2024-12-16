@@ -7,6 +7,7 @@ import '../models/timing_data.dart';
 import 'package:race_timing_app/database_helper.dart';
 // import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'package:barcode_scan2/barcode_scan2.dart';
 
 class TimingScreen extends StatefulWidget {
@@ -378,209 +379,243 @@ class _TimingScreenState extends State<TimingScreen> {
       appBar: AppBar(title: const Text('Race Timing')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Buttons for Race Control
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0), // Padding around the button
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        double fontSize = constraints.maxWidth * 0.12; // Scalable font size
-                        return ElevatedButton(
-                          onPressed: startTime == null ? _startRace : _stopRace,
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: Size(0, constraints.maxWidth * 0.5), // Button height scales
-                          ),
-                          child: Text(
-                            startTime == null ? 'Start Race' : 'Stop Race',
-                            style: TextStyle(fontSize: fontSize),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                if ((startTime == null && records.isEmpty) || (startTime != null))
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0), // Padding around the button
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          double fontSize = constraints.maxWidth * 0.12;
-                          return ElevatedButton(
-                            onPressed: startTime != null ? _logTime : null,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: Size(0, constraints.maxWidth * 0.5),
-                            ),
-                            child: Text(
-                              'Log Time',
-                              style: TextStyle(fontSize: fontSize),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                if (startTime == null && records.isNotEmpty)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0), // Padding around the button
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          double fontSize = constraints.maxWidth * 0.09;
-                          return ElevatedButton(
-                            onPressed: _scanQRCode,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: Size(0, constraints.maxWidth * 0.5),
-                            ),
-                            child: Text(
-                              'Scan QR Code',
-                              style: TextStyle(fontSize: fontSize),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-
-
-
-            // const SizedBox(height: 16),
-            // ElevatedButton.icon(
-            //   onPressed: _navigateToBibNumbers,
-            //   icon: const Icon(Icons.numbers),
-            //   label: const Text('Record Bib Numbers'),
-            // ),
-            if (startTime == null && records.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: _navigateToResults,
-                icon: const Icon(Icons.bar_chart),
-                label: const Text('Go to Results'),
-              ),
-            ],
-            // const SizedBox(height: 8),
-            // ElevatedButton.icon(
-            //   onPressed: _findDevices,
-            //   icon: const Icon(Icons.bluetooth),
-            //   label: const Text('Connect via Bluetooth'),
-            // ),
-            // if (_connectedDevice != null) ...[
-            //   const SizedBox(height: 8),
-            //   ElevatedButton(
-            //     onPressed: _disconnectDevice, // Add disconnect button
-            //     child: const Text('Disconnect'),
-            //   ),
-            //   if (_startTime == null && _records.isNotEmpty)
-            //     const SizedBox(height: 8),
-            //     ElevatedButton(
-            //       onPressed: _syncDataWithDevice,
-            //       child: const Text('Sync Data'),
-            //     ),
-            // ],
-            // const SizedBox(height: 16),
-            // // Bluetooth Devices List
-            // if (_availableDevices.isNotEmpty)
-            //   Expanded(
-            //     child: ListView.builder(
-            //       itemCount: _availableDevices.length,
-            //       itemBuilder: (context, index) {
-            //         final device = _availableDevices[index];
-            //         return Card(
-            //           child: ListTile(
-            //             title: Text(device.platformName.isNotEmpty
-            //                 ? device.platformName
-            //                 : 'Unknown Device'),
-            //             subtitle: Text(device.remoteId.toString()),
-            //             trailing: IconButton(
-            //               icon: const Icon(Icons.link),
-            //               onPressed: () {
-            //                 _connectToDevice(device);
-            //               },
-            //             ),
-            //           ),
-            //         );
-            //       },
-            //     ),
-            //   ),
-            // if (_connectedDevice != null)
-            //   DropdownButton<BluetoothDevice>(
-            //     value: _connectedDevice,
-            //     items: _availableDevices.map((device) {
-            //       return DropdownMenuItem(
-            //         value: device,
-            //         child: Text(device.platformName),
-            //       );
-            //     }).toList(),
-            //     onChanged: (device) {
-            //       if (device != null) _connectToDevice(device);
-            //     },
-            //   ),
-            // Records Section
-            if (records.isNotEmpty)
-              Expanded(
-                child: ListView.builder(
-                  itemCount: records.length,
-                  itemBuilder: (context, index) {
-                    final record = records[index];
-                    final controller = controllers[index];
-                    return Card(
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(vertical: 6.0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Time: ${record['formatted_time']}',
-                                  style: const TextStyle(
-                                      fontSize: 16, fontWeight: FontWeight.bold),
-                                ),
-                                SizedBox(
-                                  width: 100,
-                                  child: TextField(
-                                    controller: controller,
-                                    decoration: InputDecoration(
-                                      labelText: 'Bib #',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                    onChanged: (value) =>
-                                        _updateBib(index, value),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            if (record['name'] != null)
-                              Text('Name: ${record['name']}',
-                                  style: const TextStyle(fontSize: 14)),
-                            if (record['grade'] != null)
-                              Text('Grade: ${record['grade']}',
-                                  style: const TextStyle(fontSize: 14)),
-                            if (record['school'] != null)
-                              Text('School: ${record['school']}',
-                                  style: const TextStyle(fontSize: 14)),
-                          ],
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Race Timer Display
+              if (startTime != null)
+                StreamBuilder(
+                  stream: Stream.periodic(const Duration(milliseconds: 10)),
+                  builder: (context, snapshot) {
+                    final currentTime = DateTime.now();
+                    final elapsed = currentTime.difference(startTime);
+                    return Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.1), // 1/10 from left
+                      width: MediaQuery.of(context).size.width * 0.75, // 3/4 of screen width
+                      child: Text(
+                        formatDurationWithZeros(elapsed),
+                        style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.width * 0.13,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                          height: 1.0,
+                        ),
+                        textAlign: TextAlign.left,
+                        strutStyle: StrutStyle(
+                          fontSize: MediaQuery.of(context).size.width * 0.15,
+                          height: 1.0,
+                          forceStrutHeight: true,
                         ),
                       ),
                     );
                   },
                 ),
+              // Buttons for Race Control
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0), // Padding around the button
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                        double fontSize = constraints.maxWidth * 0.12; // Scalable font size
+                          return ElevatedButton(
+                            onPressed: startTime == null ? _startRace : _stopRace,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: Size(0, constraints.maxWidth * 0.5), // Button height scales
+                            ),
+                            child: Text(
+                              startTime == null ? 'Start Race' : 'Stop Race',
+                              style: TextStyle(fontSize: fontSize),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  if ((startTime == null && records.isEmpty) || (startTime != null))
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0), // Padding around the button
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                          double fontSize = constraints.maxWidth * 0.12;
+                            return ElevatedButton(
+                              onPressed: startTime != null ? _logTime : null,
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(0, constraints.maxWidth * 0.5),
+                              ),
+                              child: Text(
+                                'Log Time',
+                                style: TextStyle(fontSize: fontSize),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  if (startTime == null && records.isNotEmpty)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0), // Padding around the button
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                          double fontSize = constraints.maxWidth * 0.09;
+                            return ElevatedButton(
+                              onPressed: _scanQRCode,
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(0, constraints.maxWidth * 0.5),
+                              ),
+                              child: Text(
+                                'Scan QR Code',
+                                style: TextStyle(fontSize: fontSize),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                ],
               ),
-          ],
+
+
+
+              // const SizedBox(height: 16),
+              // ElevatedButton.icon(
+              //   onPressed: _navigateToBibNumbers,
+              //   icon: const Icon(Icons.numbers),
+              //   label: const Text('Record Bib Numbers'),
+              // ),
+              if (startTime == null && records.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: _navigateToResults,
+                  icon: const Icon(Icons.bar_chart),
+                  label: const Text('Go to Results'),
+                ),
+              ],
+              // const SizedBox(height: 8),
+              // ElevatedButton.icon(
+              //   onPressed: _findDevices,
+              //   icon: const Icon(Icons.bluetooth),
+              //   label: const Text('Connect via Bluetooth'),
+              // ),
+              // if (_connectedDevice != null) ...[
+              //   const SizedBox(height: 8),
+              //   ElevatedButton(
+              //     onPressed: _disconnectDevice, // Add disconnect button
+              //     child: const Text('Disconnect'),
+              //   ),
+              //   if (_startTime == null && _records.isNotEmpty)
+              //     const SizedBox(height: 8),
+              //     ElevatedButton(
+              //       onPressed: _syncDataWithDevice,
+              //       child: const Text('Sync Data'),
+              //     ),
+              // ],
+              // const SizedBox(height: 16),
+              // // Bluetooth Devices List
+              // if (_availableDevices.isNotEmpty)
+              //   Expanded(
+              //     child: ListView.builder(
+              //       itemCount: _availableDevices.length,
+              //       itemBuilder: (context, index) {
+              //         final device = _availableDevices[index];
+              //         return Card(
+              //           child: ListTile(
+              //             title: Text(device.platformName.isNotEmpty
+              //                 ? device.platformName
+              //                 : 'Unknown Device'),
+              //             subtitle: Text(device.remoteId.toString()),
+              //             trailing: IconButton(
+              //               icon: const Icon(Icons.link),
+              //               onPressed: () {
+              //                 _connectToDevice(device);
+              //               },
+              //             ),
+              //           ),
+              //         );
+              //       },
+              //     ),
+              //   ),
+              // if (_connectedDevice != null)
+              //   DropdownButton<BluetoothDevice>(
+              //     value: _connectedDevice,
+              //     items: _availableDevices.map((device) {
+              //       return DropdownMenuItem(
+              //         value: device,
+              //         child: Text(device.platformName),
+              //       );
+              //     }).toList(),
+              //     onChanged: (device) {
+              //       if (device != null) _connectToDevice(device);
+              //     },
+              //   ),
+              // Records Section
+              if (records.isNotEmpty)
+                SizedBox(
+                  height: 300, // Fixed height for the records section
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    physics: const ClampingScrollPhysics(),
+                    itemCount: records.length,
+                    itemBuilder: (context, index) {
+                      final record = records[index];
+                      final controller = controllers[index];
+                      return Card(
+                        elevation: 4,
+                        margin: const EdgeInsets.symmetric(vertical: 6.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Time: ${record['formatted_time']}',
+                                    style: TextStyle(
+                                        fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                                  SizedBox(
+                                    width: 100,
+                                    child: TextField(
+                                      controller: controller,
+                                      decoration: InputDecoration(
+                                        labelText: 'Bib #',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      onChanged: (value) =>
+                                          _updateBib(index, value),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              if (record['name'] != null)
+                                Text('Name: ${record['name']}',
+                                    style: TextStyle(fontSize: 14)),
+                              if (record['grade'] != null)
+                                Text('Grade: ${record['grade']}',
+                                    style: TextStyle(fontSize: 14)),
+                              if (record['school'] != null)
+                                Text('School: ${record['school']}',
+                                    style: TextStyle(fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
