@@ -385,6 +385,7 @@ class _MyPreviewDecoratorWidget extends StatelessWidget {
         print('constraints.maxWidth: ${constraints.maxWidth}');
         print('constraints.maxHeight: ${constraints.maxHeight}');
         final quarterWidth = constraints.maxWidth / 4;
+        final blurAmount = 10.0;
 
         return Stack(
           children: [
@@ -396,7 +397,7 @@ class _MyPreviewDecoratorWidget extends StatelessWidget {
               height: constraints.maxHeight,
               child: ClipRect(
                 child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                  filter: ui.ImageFilter.blur(sigmaX: blurAmount, sigmaY: blurAmount),
                   child: Container(
                     color: Colors.transparent,
                   ),
@@ -411,7 +412,7 @@ class _MyPreviewDecoratorWidget extends StatelessWidget {
               height: constraints.maxHeight,
               child: ClipRect(
                 child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                  filter: ui.ImageFilter.blur(sigmaX: blurAmount, sigmaY: blurAmount),
                   child: Container(
                     color: Colors.transparent,
                   ),
