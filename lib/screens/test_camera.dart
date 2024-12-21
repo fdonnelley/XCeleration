@@ -22,6 +22,7 @@ class CameraPage extends StatefulWidget {
 class _CameraPageState extends State<CameraPage> {
   camerawesome.Preview? _preview;
   List<List<double>>? _greenSquareCoordinates; // Add a variable to hold the coordinates
+  bool _canAnalyze = true;
 
   @override
   void deactivate() {
@@ -32,8 +33,8 @@ class _CameraPageState extends State<CameraPage> {
   void dispose() {
     super.dispose();
   }
-  Future<List<List<double>>> _getGreenSquareCoordinates(Uint8List image) async {
-    return await getDigitBoundingBoxes(image);
+  Future<List<List<double>>> _getGreenSquareCoordinates(Uint8List image, width, height) async {
+    return await getDigitBoundingBoxes(image, width, height);
     // return list_of_coordinates.map((coordinates) => [
     //   Offset(coordinates[0].toDouble(), coordinates[1].toDouble()),
     //   Offset(coordinates[2].toDouble(), coordinates[3].toDouble())
@@ -70,19 +71,19 @@ class _CameraPageState extends State<CameraPage> {
         previewFit: camerawesome.CameraPreviewFit.contain,
         sensorConfig: camerawesome.SensorConfig.single(
           sensor: camerawesome.Sensor.position(camerawesome.SensorPosition.back),
-          aspectRatio: camerawesome.CameraAspectRatios.ratio_1_1,
+          aspectRatio: camerawesome.CameraAspectRatios.ratio_4_3,
           flashMode: camerawesome.FlashMode.auto,
         ),
         enablePhysicalButton: true,
-        onImageForAnalysis: (img) => _analyzeImage(img),
-        // imageAnalysisConfig: camerawesome.AnalysisConfig(
-        //   androidOptions: const camerawesome.AndroidAnalysisOptions.nv21(
-        //     width: 250,
-        //   ),
-        //   autoStart: true,
-        //   cupertinoOptions: const CupertinoAnalysisOptions.bgra8888(),
-        //   maxFramesPerSecond: 10,
-        // ),
+        onImageForAnalysis: (img) async => {_analyzeImage(img)},
+        imageAnalysisConfig: camerawesome.AnalysisConfig(
+          androidOptions: const camerawesome.AndroidAnalysisOptions.nv21(
+            width: 250,
+          ),
+          autoStart: true,  // Keep analysis running to detect digits
+          cupertinoOptions: const CupertinoAnalysisOptions.bgra8888(),
+          maxFramesPerSecond: 1,
+        ),
         onMediaCaptureEvent: (event) async {
           print('Media capture event: ${event.status}');
           switch ((event.status, event.isPicture, event.isVideo)) {
@@ -97,6 +98,7 @@ class _CameraPageState extends State<CameraPage> {
                     // await photoState.takePhoto();
                     // print('Photo taken successfully');
                     final file = request.file;
+                    print('File type: ${file?.runtimeType}');
                     if (file == null) {
                       print('Error: No file captured');
                       return null;
@@ -281,19 +283,27 @@ class _CameraPageState extends State<CameraPage> {
   // }
 
   Future _analyzeImage(camerawesome.AnalysisImage img) async {
-    // final inputImage = img.toInputImage();
-
-    // try {
-      
+    try {
+      final stopwatch = Stopwatch()..start(); // Start timing
       final Uint8List imageBytes = await _getImageBytesFromInputImage(img);
+      stopwatch.stop(); // Stop timing
+      print('Image bytes took: ${stopwatch.elapsedMilliseconds} ms'); // Log the duration
       // print('type: ${imageBytes.runtimeType}');
       // Get the green square coordinates
-      final greenSquares = await _getGreenSquareCoordinates(imageBytes);
+      final stopwatch2 = Stopwatch()..start(); // Start timing
+      final greenSquares = await _getGreenSquareCoordinates(imageBytes, img.width, img.height);
+      stopwatch2.stop(); // Stop timing
+      print('Green squares took: ${stopwatch2.elapsedMilliseconds} ms'); // Log the duration
 
-      setState(() {
-        _greenSquareCoordinates = greenSquares;
-      });
-  }
+      if (mounted) {
+        setState(() {
+          _greenSquareCoordinates = greenSquares;
+        });
+      }
+    } catch (e) {
+      print('Error during image analysis: $e'); // Log any errors
+    }
+  } 
 }
 
 Future<void> saveImage(Uint8List imageBytes) async {
@@ -319,40 +329,16 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
       return Uint8List.fromList(image.planes[0].bytes);
     },
     bgra8888: (Bgra8888Image image) {
-      final bgraBytes = image.planes[0].bytes;
-      final rgbaBytes = Uint8List(bgraBytes.length);
-
-      // Convert BGRA to RGBA
-      for (int i = 0; i < bgraBytes.length; i += 4) {
-        rgbaBytes[i] = bgraBytes[i + 2];     // Red
-        rgbaBytes[i + 1] = bgraBytes[i + 1]; // Green
-        rgbaBytes[i + 2] = bgraBytes[i];     // Blue
-        rgbaBytes[i + 3] = bgraBytes[i + 3]; // Alpha
-      }
-
-      // Create an image from RGBA bytes
-      final imgImage = img.Image.fromBytes(
-        width: image.width,
-        height: image.height,
-        bytes: rgbaBytes.buffer,
-        numChannels: 4,
-      );
-
-      // Encode as PNG
-      return Uint8List.fromList(img.encodePng(imgImage));
+      return image.planes[0].bytes;
     },
-    // // Add other cases if necessary
     // unknown: () {
-    //   print("Unknown image format");
-    //   return null;
+    //   throw Exception("Unknown image format");
     // },
   );
 
   if (bytes == null) {
-    throw("Failed to extract bytes from the image.");
-    // return Uint8List.fromList([]);
+    throw Exception("Failed to extract bytes from the image.");
   }
-  // saveImage(bytes);
   return bytes;
 }
 
@@ -378,12 +364,13 @@ class _MyPreviewDecoratorWidget extends StatelessWidget {
         // print("Preview screen preview.nativePreviewSize (height, width): ${preview.rect.height}, ${preview.rect.width}");
         // print('constraints.maxWidth: ${constraints.maxWidth}');
         // print('constraints.maxHeight: ${constraints.maxHeight}');
-        print("Preview screen size: $size");
-        print("Preview screen preview.previewSize: ${preview.previewSize}");
-        print("Preview screen preview.nativePreviewSize: ${preview.nativePreviewSize}");
-        print("Preview screen preview.nativePreviewSize (height, width): ${preview.rect.height}, ${preview.rect.width}");
-        print('constraints.maxWidth: ${constraints.maxWidth}');
-        print('constraints.maxHeight: ${constraints.maxHeight}');
+        
+        // print("Preview screen size: $size");
+        // print("Preview screen preview.previewSize: ${preview.previewSize}");
+        // print("Preview screen preview.nativePreviewSize: ${preview.nativePreviewSize}");
+        // print("Preview screen preview.nativePreviewSize (height, width): ${preview.rect.height}, ${preview.rect.width}");
+        // print('constraints.maxWidth: ${constraints.maxWidth}');
+        // print('constraints.maxHeight: ${constraints.maxHeight}');
         final quarterWidth = constraints.maxWidth / 4;
 
         return Stack(
@@ -454,9 +441,8 @@ class _GreenSquarePainter extends CustomPainter {
     if (greenSquareCoordinates != null) {
       for (var coordinates in greenSquareCoordinates!) {
         if (coordinates.length == 4) {
-          print('canvas size: $size');
-          print('canvas size: ${canvas.getLocalClipBounds()}');
-          print('previewSize: $previewSize');
+          // print('canvas size: $size');
+          // print('previewSize: $previewSize');
           final x = coordinates[0] * previewSize[0];
           final y = coordinates[1] * previewSize[1];
           final width = coordinates[2] * previewSize[0];

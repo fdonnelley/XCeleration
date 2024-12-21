@@ -17,8 +17,10 @@ from tensorflow.keras.models import load_model
 import cv2
 import os
 from flask import Flask, request, jsonify
+import time
 
 debug = False
+save = False
 
 def load_model_from_file(file_path):
   model_path = os.path.abspath(file_path)
@@ -30,18 +32,30 @@ app = Flask(__name__)
 @app.route('/run-get_boxes', methods=['POST'])
 def get_boxes():
   # Get the uploaded file
-  cv_image = get_uploaded_image(request)
+  start_time = time.time()  # Start timing
+  cv_image = get_uploaded_image_from_brga_bytes(request)
+  end_time = time.time()  # Stop timing
+  print("Time to retrive image:", end_time - start_time)
   # print("image size:", cv_image.shape)
-  coordinates = convert_to_percentage(get_digit_bounding_boxes(cv_image), cv_image.shape[0], cv_image.shape[1])
-  return jsonify({"coordinates": coordinates})
+  coordinates = get_digit_bounding_boxes(cv_image)
+  scaledCoordinates = convert_to_percentage(coordinates, cv_image.shape[0], cv_image.shape[1])
+  return jsonify({"coordinates": scaledCoordinates})
 
 
 @app.route('/run-find_digits', methods=['POST'])
 def find_digits():
+  global save
+  save = True
   # Get the uploaded file
   cv_image = get_uploaded_image(request)
+  try:
+    cv2.imwrite('uploaded_image.png', cv_image)
+  except:
+    pass
+  print("image size!!!!!:", cv_image.shape)
   result = predict_digits_from_picture(cv_image)
   print("result:", result)
+  save = False
   return format_digits_and_confidences_to_response(result[0], result[1])
 
 # Converts bounding box coordinates to percentages of the image height and width.
@@ -55,16 +69,16 @@ def convert_to_percentage(coordinates, img_height, img_width):
 
     for box in coordinates:
         x, y, width, height = box
-        x_percent = x / img_width + crop_ajustment
+        x_percent = (x / img_width) + crop_ajustment
         y_percent = y / img_height
         width_percent = width / img_width
         height_percent = height / img_height
 
         percentage_coordinates.append([
-            round(x_percent, 3),
-            round(y_percent, 3),
-            round(width_percent, 3),
-            round(height_percent, 3),
+            round(x_percent, 4),
+            round(y_percent, 4),
+            round(width_percent, 4),
+            round(height_percent, 4),
         ])
 
     return percentage_coordinates
@@ -74,24 +88,80 @@ def get_uploaded_image(request):
   if 'image' not in request.files:
       return jsonify({"error": "No image uploaded"}), 400
   
+  start_time = time.time()  # Start timing for decoding
   file = request.files['image']
   file_bytes = file.read()
-  
+  end_time = time.time()  # Stop timing for decoding
+  print("Time to read image:", end_time - start_time)
+
   # Convert bytes to an OpenCV image
+  start_time = time.time()  # Start timing for decoding
   nparr = np.frombuffer(file_bytes, dtype=np.uint8)
-  cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)  # Use IMREAD_COLOR since we're sending PNG
+  print("nparr size:", nparr.size)
+
+  width = int(request.form['width'])
+  height = int(request.form['height'])
   
+  print(f"Original array size: {nparr.size}, expected shape: ({height}, {width}, 4)")
+
+
+  # nparr = nparr.reshape((height, width, 4))
+  cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)  # Use IMREAD_COLOR since we're sending PNG
+  # cv_image = cv2.cvtColor(nparr, cv2.COLOR_BGR2RGB)
+  end_time = time.time()  # Stop timing for decoding
+  print("Time to decode image:", end_time - start_time)
+
   if cv_image is None:
       print("Failed to decode image. Input bytes length:", len(file_bytes))
       raise ValueError("Failed to decode image. Check the input bytes.")
+
+  # Convert color format
+  start_time = time.time()  # Start timing for color conversion
+  cv_image = cv2.cvtColor(cv_image, cv2.COLOR_RGBA2RGB)
+  end_time = time.time()  # Stop timing for color conversion
+  print("Time to convert color format:", end_time - start_time)
+
+  # rotated_cv_image = cv2.rotate(cv_image, cv2.ROTATE_90_CLOCKWISE)
+
+
+  # print("image size:", rotated_cv_image.shape)
+  return cv_image
+
+def get_uploaded_image_from_brga_bytes(request):
+  if 'image' not in request.files:
+      return jsonify({"error": "No image uploaded"}), 400
   
-  try: 
-      # Save the decoded image to verify the file
-      cv2.imwrite('received_image2.png', cv2.cvtColor(cv_image, cv2.COLOR_RGBA2RGB))
-      # print('Saved image')
-  except Exception as e:
-      print(f"Error saving image: {e}")
-  return cv2.cvtColor(cv_image, cv2.COLOR_RGBA2RGB)
+  start_time = time.time()  # Start timing for decoding
+  file = request.files['image']
+  file_bytes = file.read()
+  end_time = time.time()  # Stop timing for decoding
+  print("Time to read image:", end_time - start_time)
+
+  # Convert bytes to an OpenCV image
+  start_time = time.time()  # Start timing for decoding
+  nparr = np.frombuffer(file_bytes, dtype=np.uint8)
+  # Retrieve width and height from the request
+  width = int(request.form['width'])
+  height = int(request.form['height'])
+
+  nparr = nparr.reshape((height, width, 4))
+  # cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)  # Use IMREAD_COLOR since we're sending PNG
+  cv_image = cv2.cvtColor(nparr, cv2.COLOR_BGR2RGB)
+  end_time = time.time()  # Stop timing for decoding
+  print("Time to decode image:", end_time - start_time)
+
+  if cv_image is None:
+      print("Failed to decode image. Input bytes length:", len(file_bytes))
+      raise ValueError("Failed to decode image. Check the input bytes.")
+
+  # Convert color format
+  start_time = time.time()  # Start timing for color conversion
+  cv_image = cv2.cvtColor(cv_image, cv2.COLOR_RGBA2RGB)
+  end_time = time.time()  # Stop timing for color conversion
+  print("Time to convert color format:", end_time - start_time)
+
+  print("image size:", cv_image.shape)
+  return cv_image
 
 # Format the predicted digits and their confidences into a JSON response.
 def format_digits_and_confidences_to_response(digits, confidences):
@@ -152,12 +222,14 @@ def predict_digits_from_arrays(image_arrays):
   return digits, confidences
 
 # Predict digits from a list of images after resizing and processing.
-def predict_digits_from_images(image, debug=False):
-  resized_images = np.array(list(map(resize_image, image)))
+def predict_digits_from_images(images, debug=False):
+  resized_images = np.array(list(map(resize_image, images)))
+  print("resized_images shape:", resized_images.shape)
   if debug:
     for resized_image in resized_images:
       visualize_mnist_image(resized_image)
   processed_images = process_data(resized_images)
+  print('processed_images shape:', processed_images.shape)
   processed_image_arrays = processed_images.reshape(processed_images.shape[0], 28, 28, 1)
   digits, confidences = predict_digits_from_arrays(processed_image_arrays)
   return digits, confidences
@@ -181,12 +253,14 @@ def blur_image(image, blur_width):
 
 # Crop the image to remove unnecessary parts based on the width.
 def crop_image(image, debug=False):
-  crop_width = image.shape[1]/4
+  crop_width = int(image.shape[1]/4)
   if debug:
     plt.figure(figsize=(10, 5))
     plt.title('Blurred Image to show Crop')
     plt.imshow(blur_image(image, crop_width))
     plt.show()
+  print(image.shape)
+  print(crop_width)
   image = image[:, crop_width: -crop_width]
   return image
 
@@ -332,13 +406,11 @@ def validate_grouped_bounding_boxes(bounding_box_group, area_threshold=0.4):
 
 # Get bounding boxes for digits in the provided image.
 def get_digit_bounding_boxes(image):
+  start_time = time.time()  # Start timing
   pre_processed_image = pre_process_image(image)
-  try: 
-    # Save the decoded image to verify the file
-    cv2.imwrite('preprocessed_image.png', pre_processed_image)
-    # print('Saved image')
-  except Exception as e:
-      print(f"Error saving image: {e}")
+  end_time = time.time()  # End timing
+  duration = end_time - start_time
+  print(f"get_digit_bounding_boxes took {duration:.4f} seconds")
   return extract_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=False)
 
 # Extract digit bounding boxes from a pre-processed image.
@@ -347,10 +419,22 @@ def extract_digit_bounding_boxes_from_processed_image(pre_processed_image, debug
   contours, _ = cv2.findContours(pre_processed_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
   filtered_bounding_boxes = []
   for contour in contours:
-    if filter_contour(contour, pre_processed_image, debug=debug):
-      x, y, w, h = cv2.boundingRect(contour)
-      filtered_bounding_boxes.append((x, y, w, h))
-  return select_and_sort_bounding_boxes(filtered_bounding_boxes, debug=debug)
+    # if filter_contour(contour, pre_processed_image, debug=debug):
+    x, y, w, h = cv2.boundingRect(contour)
+    filtered_bounding_boxes.append((x, y, w, h))
+  print("contours:", len(contours))
+  print('filtered_bounding_boxes:', filtered_bounding_boxes)
+  bounding_boxes = select_and_sort_bounding_boxes(filtered_bounding_boxes, debug=debug)
+  print('bounding_boxes:', bounding_boxes)
+  global save
+  if save:
+    print('saving image with bounding boxes')
+    try:
+      cv2.imwrite('pre_processed_image_with_bounding_boxes.png', show_bounding_boxes_on_image(pre_processed_image, bounding_boxes))
+    except:
+      pass
+  save = False
+  return bounding_boxes
 
 # Draw bounding boxes on the image for visualization.
 def show_bounding_boxes_on_image(image, digit_bounding_boxes):
@@ -388,6 +472,8 @@ def select_digit_images_from_image(image, digit_bounding_boxes, debug=False):
 # Process the image to extract digit images and their bounding boxes.
 def process_image(image, debug=False):
     pre_processed_image = pre_process_image(image, debug=debug)
+    cv2.imwrite('pre_processed_prediction_image.png', pre_processed_image)
+
     digit_bounding_boxes = extract_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=debug)
     return select_digit_images_from_image(pre_processed_image, digit_bounding_boxes, debug)
 
