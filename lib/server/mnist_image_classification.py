@@ -421,9 +421,9 @@ def extract_digit_bounding_boxes_from_processed_image(pre_processed_image, debug
   contours, _ = cv2.findContours(pre_processed_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
   filtered_bounding_boxes = []
   for contour in contours:
-    # if filter_contour(contour, pre_processed_image, debug=debug):
-    x, y, w, h = cv2.boundingRect(contour)
-    filtered_bounding_boxes.append((x, y, w, h))
+    if filter_contour(contour, pre_processed_image, debug=debug):
+      x, y, w, h = cv2.boundingRect(contour)
+      filtered_bounding_boxes.append((x, y, w, h))
   print("contours:", len(contours))
   print('filtered_bounding_boxes:', filtered_bounding_boxes)
   bounding_boxes = select_and_sort_bounding_boxes(filtered_bounding_boxes, debug=debug)
