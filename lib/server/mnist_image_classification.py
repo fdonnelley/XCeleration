@@ -223,6 +223,8 @@ def predict_digits_from_arrays(image_arrays):
 
 # Predict digits from a list of images after resizing and processing.
 def predict_digits_from_images(images, debug=False):
+  if not images:
+    return None
   resized_images = np.array(list(map(resize_image, images)))
   print("resized_images shape:", resized_images.shape)
   if debug:
@@ -286,7 +288,7 @@ def pre_process_image(image, debug=False):
 
   # Apply morphological operations to connect components
   kernel = np.ones((5,5), np.uint8)
-  binary_full_cleaned = cv2.morphologyEx(binary_full, cv2.MORPH_CLOSE, kernel, iterations=2)
+  binary_full_cleaned = cv2.morphologyEx(binary_full, cv2.MORPH_CLOSE, kernel, iterations=4)
   # kernel = np.ones((3,3), np.uint8)
   binary_full_cleaned = cv2.morphologyEx(binary_full_cleaned, cv2.MORPH_OPEN, kernel, iterations=1)
 
@@ -310,14 +312,14 @@ def pre_process_image(image, debug=False):
 
 # Filter contours based on area and aspect ratio criteria.
 def filter_contour(contour, pre_processed_image, debug=False):
-  min_contour_area = pre_processed_image.shape[0] / 15 * pre_processed_image.shape[1] / 15
+  min_contour_area = pre_processed_image.shape[0] / 14 * pre_processed_image.shape[1] / 14
   max_contour_area = pre_processed_image.shape[0] / 3 * pre_processed_image.shape[1] / 3
   min_contour_aspect_ratio = 0.9
   max_contour_aspect_ratio = 8.0
   contour_margin = 20
   contour_margins_max_white_threshold = 0.08 # Threshold for white pixels around the contour
-  max_black_pixel_threshold = 0.8  # Max threshold for majority black pixels
-  min_black_pixel_threshold = 0.4  # Min threshold for majority white pixels
+  max_black_pixel_threshold = 0.95  # Max threshold for majority black pixels
+  min_black_pixel_threshold = 0.3  # Min threshold for majority white pixels
 
   x, y, w, h = cv2.boundingRect(contour)
   area = w * h
