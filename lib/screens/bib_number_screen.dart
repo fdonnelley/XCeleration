@@ -43,6 +43,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       _bibRecords[index]['bib_number'] = bibNumber;
     });
   }
+  void _captureBibNumbersWithCamera() {
+    // code this
+  }
 
   Future<void> _captureBibNumber(int index) async {
     // Navigate to the CameraScreen to capture an image
@@ -59,6 +62,14 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       });
       _addBibNumber();
     }
+  }
+
+  Future<void> _deleteBibNumber(int index) async {
+    setState(() {
+      _controllers.removeAt(index);
+      _focusNodes.removeAt(index);
+      _bibRecords.removeAt(index);
+    }); 
   }
 
 
@@ -237,6 +248,17 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                 child: const Text('Add Bib Number', style: TextStyle(fontSize: 20)),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: ElevatedButton.icon(
+                onPressed: _captureBibNumbersWithCamera,
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Photo', style: TextStyle(fontSize: 20)),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                ),
+              ),
+            ),
             if (_bibRecords.isNotEmpty)
               ElevatedButton(
                 onPressed: _showQrCode,
@@ -275,8 +297,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                             ),
                             const SizedBox(width: 8),
                             IconButton(
-                              icon: const Icon(Icons.camera_alt),
-                              onPressed: () => _captureBibNumber(index),
+                              icon: const Icon(Icons.delete),
+                              onPressed: () => _deleteBibNumber(index),
                             ),
                           ],
                         ),
