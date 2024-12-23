@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+// import 'package:image_picker/image_picker.dart';
 // import 'camera_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:convert';
-import '../server/digit_recognition.dart';
 import 'test_camera.dart';
 // import 'package:camera/camera.dart';
 // import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -58,6 +57,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         _controllers[index].text = digits;
         _bibRecords[index]['bib_number'] = digits;
       });
+      _addBibNumber();
     }
   }
 

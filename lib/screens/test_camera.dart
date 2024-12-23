@@ -176,16 +176,16 @@ class _CameraPageState extends State<CameraPage> {
 
   Future _analyzeImage(camerawesome.AnalysisImage img) async {
     try {
-      final stopwatch = Stopwatch()..start(); // Start timing
+      // final stopwatch = Stopwatch()..start(); // Start timing
       final Uint8List imageBytes = await _getImageBytesFromInputImage(img);
-      stopwatch.stop(); // Stop timing
-      print('Image bytes took: ${stopwatch.elapsedMilliseconds} ms'); // Log the duration
+      // stopwatch.stop(); // Stop timing
+      // print('Image bytes took: ${stopwatch.elapsedMilliseconds} ms'); // Log the duration
       // print('type: ${imageBytes.runtimeType}');
       // Get the green square coordinates
-      final stopwatch2 = Stopwatch()..start(); // Start timing
+      // final stopwatch2 = Stopwatch()..start(); // Start timing
       final greenSquares = await _getGreenSquareCoordinates(imageBytes, img.width, img.height);
-      stopwatch2.stop(); // Stop timing
-      print('Green squares took: ${stopwatch2.elapsedMilliseconds} ms'); // Log the duration
+      // stopwatch2.stop(); // Stop timing
+      // print('Green squares took: ${stopwatch2.elapsedMilliseconds} ms'); // Log the duration
 
       if (mounted) {
         setState(() {
