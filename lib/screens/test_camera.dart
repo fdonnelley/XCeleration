@@ -13,7 +13,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:ui' as ui;
 
 class CameraPage extends StatefulWidget {
-  const CameraPage({super.key});
+  final Function(String?)? onDigitsDetected;
+  const CameraPage({super.key, this.onDigitsDetected});
 
   @override
   State<CameraPage> createState() => _CameraPageState();
@@ -108,12 +109,12 @@ class _CameraPageState extends State<CameraPage> {
                     final digits = await predictDigitsFromPicture(file);
                     print('Digit prediction successful! Predicted digits: $digits');
                     if (mounted && context.mounted) {
-                      Navigator.pop(context, digits);
+                      widget.onDigitsDetected?.call(digits);
                     }
                   } catch (e) {
                     print('Error predicting digits: $e');
                     if (mounted && context.mounted) {
-                      Navigator.pop(context, null);
+                      widget.onDigitsDetected?.call(null);
                     }
                   }
                 },

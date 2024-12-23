@@ -44,29 +44,25 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     });
   }
   void _captureBibNumbersWithCamera() async {
-    while (true) {
-      final digits = await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const CameraPage()),
-      );
-
-      if (digits == null) {
-        // User pressed cancel
-        break;
-      }
-
-      // Add the new bib number
-      setState(() {
-        _controllers.add(TextEditingController(text: digits));
-        _focusNodes.add(FocusNode());
-        _bibRecords.add({
-          'bib_number': digits,
-          'position': _bibRecords.length + 1
-        });
-      });
-
-      // Don't break here - let the camera stay open for more captures
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CameraPage(
+          onDigitsDetected: (digits) {
+            if (digits != null) {
+              setState(() {
+                _controllers.add(TextEditingController(text: digits));
+                _focusNodes.add(FocusNode());
+                _bibRecords.add({
+                  'bib_number': digits,
+                  'position': _bibRecords.length + 1
+                });
+              });
+            }
+          },
+        ),
+      ),
+    );
   }
 
 
