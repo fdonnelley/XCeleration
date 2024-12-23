@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class TimingData with ChangeNotifier {
-  List<Map<String, dynamic>> _records = [];
-  List<TextEditingController> _controllers = [];
+  final List<Map<String, dynamic>> _records = [];
+  final List<TextEditingController> _controllers = [];
   DateTime? _startTime;
 
   //  List<TextEditingController> controllers = [];

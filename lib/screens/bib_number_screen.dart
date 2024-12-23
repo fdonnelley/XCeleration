@@ -43,26 +43,32 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       _bibRecords[index]['bib_number'] = bibNumber;
     });
   }
-  void _captureBibNumbersWithCamera() {
-    // code this
-  }
+  void _captureBibNumbersWithCamera() async {
+    while (true) {
+      final digits = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const CameraPage()),
+      );
 
-  Future<void> _captureBibNumber(int index) async {
-    // Navigate to the CameraScreen to capture an image
-    final digits = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => CameraPage()),
-    );
+      if (digits == null) {
+        // User pressed cancel
+        break;
+      }
 
-    if (digits != null) {
-      // Update the text field and record with the extracted number
+      // Add the new bib number
       setState(() {
-        _controllers[index].text = digits;
-        _bibRecords[index]['bib_number'] = digits;
+        _controllers.add(TextEditingController(text: digits));
+        _focusNodes.add(FocusNode());
+        _bibRecords.add({
+          'bib_number': digits,
+          'position': _bibRecords.length + 1
+        });
       });
-      _addBibNumber();
+
+      // Don't break here - let the camera stay open for more captures
     }
   }
+
 
   Future<void> _deleteBibNumber(int index) async {
     setState(() {

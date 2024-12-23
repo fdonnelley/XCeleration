@@ -39,7 +39,13 @@ class _CameraPageState extends State<CameraPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Camera Page')),
+      appBar: AppBar(
+        title: const Text('Camera Page'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: camerawesome.CameraAwesomeBuilder.awesome(
         saveConfig: SaveConfig.photo(
           pathBuilder: (sensors) async {
@@ -87,31 +93,30 @@ class _CameraPageState extends State<CameraPage> {
               break;
             case (MediaCaptureStatus.success, true, false):
               print('Picture taken successfully');
-                event.captureRequest.when(
-                  single: (SingleCaptureRequest request) async {
+              event.captureRequest.when(
+                single: (SingleCaptureRequest request) async {
                     // print('Single capture request received');
                     // await photoState.takePhoto();
                     // print('Photo taken successfully');
-                    final file = request.file;
-                    print('File type: ${file?.runtimeType}');
-                    if (file == null) {
-                      print('Error: No file captured');
-                      return null;
+                  final file = request.file;
+                  print('File type: ${file?.runtimeType}');
+                  if (file == null) {
+                    print('Error: No file captured');
+                    return null;
+                  }
+                  try {
+                    final digits = await predictDigitsFromPicture(file);
+                    print('Digit prediction successful! Predicted digits: $digits');
+                    if (mounted && context.mounted) {
+                      Navigator.pop(context, digits);
                     }
-                    final navigatorContext = context;
-                    try {
-                        final digits = await predictDigitsFromPicture(file);
-                        print('Digit prediction successful! Predicted digits: $digits');
-                        if (mounted && context.mounted) {
-                          Navigator.pop(navigatorContext, digits);
-                        }
-                      } catch (e) {
-                        print('Error predicting digits: $e');
-                        if (mounted && context.mounted) {
-                          Navigator.pop(navigatorContext, null);
-                        }
-                      }
-                  },
+                  } catch (e) {
+                    print('Error predicting digits: $e');
+                    if (mounted && context.mounted) {
+                      Navigator.pop(context, null);
+                    }
+                  }
+                },
                   // multiple: (MultipleCaptureRequest request) async {
                   //   print('Multiple capture request received');
                     // await photoState.takePhoto();
@@ -120,7 +125,7 @@ class _CameraPageState extends State<CameraPage> {
                     // print('Multiple capture file path: ${file?.path}');
                     // return file;
                   // },
-                );
+              );
               break;
             case (MediaCaptureStatus.failure, true, false):
               print('Failed to take picture: ${event.exception}');
