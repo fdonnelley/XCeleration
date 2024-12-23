@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 // import 'package:file_picker/file_picker.dart';
 import 'package:race_timing_app/file_processing.dart';
 import 'package:race_timing_app/database_helper.dart';
+// import 'package:race_timing_app/models/race.dart';
 
 class RunnersManagement extends StatefulWidget {
-  const RunnersManagement({super.key});
+  final int raceId;
+
+  const RunnersManagement({
+    Key? key, 
+    required this.raceId,
+  }) : super(key: key);
 
   @override
   State<RunnersManagement> createState() => _RunnersManagementState();
@@ -17,20 +23,24 @@ class _RunnersManagementState extends State<RunnersManagement> {
   final _bibController = TextEditingController();
   final _deleteBibController = TextEditingController();
 
-
   List<Map<String, dynamic>> _runners = []; // To store runners fetched from the database.
+  // List<Map<String, dynamic>> _sharedRunners = [];
+
+  late int raceId;
 
   @override
   void initState() {
     super.initState();
+    raceId = widget.raceId;
     _loadRunners(); // Load runners when the widget is initialized.
   }
 
   Future<void> _loadRunners() async {
     // Fetch runners from the database
-    final runners = await DatabaseHelper.instance.fetchAllRunners();
+    final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
+    final sharedRunners = await DatabaseHelper.instance.getAllSharedRunners();
     setState(() {
-      _runners = runners; // Update the state with the fetched runners
+      _runners = [...runners, ...sharedRunners]; // Update the state with the fetched runners, including shared runners
     });
   }
 
@@ -38,16 +48,22 @@ class _RunnersManagementState extends State<RunnersManagement> {
     final name = _nameController.text;
     final grade = int.tryParse(_gradeController.text);
     final school = _schoolController.text;
-    final bib = _bibController.text;
+    final bib = int.tryParse(_bibController.text);
 
-    if (name.isEmpty || grade == null || school.isEmpty || bib.isEmpty) {
+    if (name.isEmpty || grade == null || school.isEmpty || bib == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
       return;
     }
 
-    await DatabaseHelper.instance.insertRunner(name, grade, school, bib);
+    await DatabaseHelper.instance.insertRaceRunner({
+      'name': name,
+      'school': school,
+      'grade': grade,
+      'bib_number': bib,
+      'race_id': raceId,
+    });
     _nameController.clear();
     _gradeController.clear();
     _schoolController.clear();
@@ -57,16 +73,16 @@ class _RunnersManagementState extends State<RunnersManagement> {
   }
 
   Future<void> _deleteRunner() async {
-    final bib = _deleteBibController.text;
+    final bib = int.tryParse(_deleteBibController.text) ?? null;
 
-    if (bib.isEmpty) {
+    if (bib == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a Bib Number')),
       );
       return;
     }
 
-    await DatabaseHelper.instance.deleteRunner(bib);
+    await DatabaseHelper.instance.deleteRaceRunner(raceId, bib);
     _deleteBibController.clear();
     _loadRunners();
     Navigator.of(context).pop(); // Close the popup
@@ -128,7 +144,7 @@ class _RunnersManagementState extends State<RunnersManagement> {
   }
 
   Future<void> _loadSpreadsheet() async {
-    await processSpreadsheet();
+    await processSpreadsheet(raceId, 'not_shared');
     _loadRunners(); // Reload runners after processing spreadsheet
   }
 
@@ -151,7 +167,7 @@ class _RunnersManagementState extends State<RunnersManagement> {
       ),
     );
     if (confirmed == true) {
-      await DatabaseHelper.instance.deleteAllRunners();
+      await DatabaseHelper.instance.deleteAllRaceRunners(raceId);
       _loadRunners();
     }
   }
@@ -230,23 +246,6 @@ class _RunnersManagementState extends State<RunnersManagement> {
                 ),
               ],
             ),
-            // Row(
-            //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            //   children: [
-            //     ElevatedButton(
-            //       onPressed: () => _showAddRunnerPopup(context),
-            //       child: const Text('Add Runner'),
-            //     ),
-            //     ElevatedButton(
-            //       onPressed: () => _showDeleteRunnerPopup(context),
-            //       child: const Text('Delete Runner'),
-            //     ),
-            //     ElevatedButton(
-            //       onPressed: _loadSpreadsheet,
-            //       child: const Text('Load Spreadsheet'),
-            //     ),
-            //   ],
-            // ),
             const SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
@@ -261,7 +260,7 @@ class _RunnersManagementState extends State<RunnersManagement> {
                     margin: const EdgeInsets.symmetric(vertical: 8.0),
                     child: ListTile(
                       leading: CircleAvatar(
-                        child: Text(runner['bib_number']),
+                        child: Text(runner['bib_number'].toString()),
                       ),
                       title: Text(runner['name']),
                       subtitle: Text(

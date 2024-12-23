@@ -9,9 +9,16 @@ import 'package:race_timing_app/database_helper.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:barcode_scan2/barcode_scan2.dart';
+// import 'package:race_timing_app/models/race.dart';
 
 class TimingScreen extends StatefulWidget {
-  const TimingScreen({super.key});
+  final int raceId;
+
+  const TimingScreen({
+    Key? key, 
+    required this.raceId,
+  }) : super(key: key);
+
 
   @override
   State<TimingScreen> createState() => _TimingScreenState();
@@ -23,8 +30,15 @@ class _TimingScreenState extends State<TimingScreen> {
   // final List<TextEditingController> _controllers = [];
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   final ScrollController _scrollController = ScrollController();
+  late int raceId;
   // List<BluetoothDevice> _availableDevices = [];
   // BluetoothDevice? _connectedDevice;
+
+  @override
+  void initState() {
+    super.initState();
+    raceId = widget.raceId;
+  }
 
   void _startRace() {
     final records = Provider.of<TimingData>(context, listen: false).records;
@@ -94,10 +108,9 @@ class _TimingScreenState extends State<TimingScreen> {
       final difference = now.difference(startTime);
 
       Provider.of<TimingData>(context, listen: false).addRecord({
-        'time': difference,
-        'formatted_time': formatDuration(difference),
+        'finish_time': formatDuration(difference),
         'bib_number': null,
-        'position': Provider.of<TimingData>(context, listen: false).records.length + 1,
+        'place': Provider.of<TimingData>(context, listen: false).records.length + 1,
       });
 
       // Scroll to bottom after adding new record
@@ -114,7 +127,7 @@ class _TimingScreenState extends State<TimingScreen> {
     Provider.of<TimingData>(context, listen: false).addController(TextEditingController());
   }
 
-  void _updateBib(int index, String bib) async {
+  void _updateBib(int index, int bib) async {
     final records = Provider.of<TimingData>(context, listen: false).records;
     // Update the bib in the record
     setState(() {
@@ -122,7 +135,7 @@ class _TimingScreenState extends State<TimingScreen> {
     });
 
     // Fetch runner details from the database
-    final runner = await DatabaseHelper.instance.fetchRunnerByBibNumber(bib);
+    final runner = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bib, getShared: true);
 
     // Update the record with runner details if found
     if (runner != null) {
@@ -130,6 +143,8 @@ class _TimingScreenState extends State<TimingScreen> {
         records[index]['name'] = runner['name'];
         records[index]['grade'] = runner['grade'];
         records[index]['school'] = runner['school'];
+        records[index]['race_runner_id'] = runner['race_runner_id'];
+        records[index]['race_id'] = raceId;
       });
     }
     else {
@@ -137,6 +152,8 @@ class _TimingScreenState extends State<TimingScreen> {
         records[index]['name'] = null;
         records[index]['grade'] = null;
         records[index]['school'] = null;
+        records[index]['race_runner_id'] = null;
+        records[index]['race_id'] = null;
       });
     }
   }
@@ -164,7 +181,7 @@ class _TimingScreenState extends State<TimingScreen> {
             records[i]['bib_number'] = bibData[i];
           });
 
-          final runner = await DatabaseHelper.instance.fetchRunnerByBibNumber(bibData[i]);
+          final runner = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibData[i], getShared: true);
           if (runner != null) {
             setState(() {
               records[i]['name'] = runner['name'];
@@ -333,40 +350,67 @@ class _TimingScreenState extends State<TimingScreen> {
   //   );
   // }
 
-  void _navigateToResults() {
+  // void _navigateToResults() {
+  //   // Check if all runners have a non-null bib number
+  //   final records = Provider.of<TimingData>(context, listen: false).records;
+
+  //   bool allRunnersHaveBibNumbers = records.every((runner) => runner['bib_number'] != null);
+
+  //   if (allRunnersHaveBibNumbers) {
+  //     // Navigate to the results page
+  //     Navigator.push(
+  //       context,
+  //       MaterialPageRoute(
+  //         builder: (context) => ResultsScreen(runners: records),
+  //       ),
+  //     );
+  //   } else {
+  //     // Show a popup error if any bib number is null
+  //     _showErrorMessage('All runners must have a bib number assigned before proceeding.');
+  //     // showDialog(
+  //     //   context: context,
+  //     //   builder: (BuildContext context) {
+  //     //     return AlertDialog(
+  //     //       title: Text('Error'),
+  //     //       content: Text('All runners must have a bib number assigned before proceeding.'),
+  //     //       actions: [
+  //     //         TextButton(
+  //     //           onPressed: () {
+  //     //             Navigator.of(context).pop(); // Close the popup
+  //     //           },
+  //     //           child: Text('OK'),
+  //     //         ),
+  //     //       ],
+  //     //     );
+  //     //   },
+  //     // );
+  //   }
+  // }
+
+  void _saveResults() async {
     // Check if all runners have a non-null bib number
     final records = Provider.of<TimingData>(context, listen: false).records;
 
-    bool allRunnersHaveBibNumbers = records.every((runner) => runner['bib_number'] != null);
+    bool allRunnersHaveRequiredInfo = records.every((runner) => runner['bib_number'] != null && runner['name'] != null && runner['grade'] != null && runner['school'] != null);
 
-    if (allRunnersHaveBibNumbers) {
+    if (allRunnersHaveRequiredInfo) {
+      // Remove the 'bib_number' key from the records before saving since it is not in database
+      for (var record in records) {
+        record.remove('bib_number');
+        record.remove('name');
+        record.remove('grade');
+        record.remove('school');
+      }
+
+      await DatabaseHelper.instance.insertRaceResults(records);
+      
       // Navigate to the results page
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => ResultsScreen(runners: records),
-        ),
+        MaterialPageRoute(builder: (context) => ResultsScreen(raceId: raceId)), // Adjust to your actual results screen widget
       );
     } else {
-      // Show a popup error if any bib number is null
       _showErrorMessage('All runners must have a bib number assigned before proceeding.');
-      // showDialog(
-      //   context: context,
-      //   builder: (BuildContext context) {
-      //     return AlertDialog(
-      //       title: Text('Error'),
-      //       content: Text('All runners must have a bib number assigned before proceeding.'),
-      //       actions: [
-      //         TextButton(
-      //           onPressed: () {
-      //             Navigator.of(context).pop(); // Close the popup
-      //           },
-      //           child: Text('OK'),
-      //         ),
-      //       ],
-      //     );
-      //   },
-      // );
     }
   }
 
@@ -488,6 +532,27 @@ class _TimingScreenState extends State<TimingScreen> {
                       ),
                     ),
                   ),
+                if (startTime == null && records.isNotEmpty)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0), // Padding around the button
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                        double fontSize = constraints.maxWidth * 0.12;
+                          return ElevatedButton(
+                            onPressed: _saveResults,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: Size(0, constraints.maxWidth * 0.5),
+                            ),
+                            child: Text(
+                              'Save Results',
+                              style: TextStyle(fontSize: fontSize),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
               ],
             ),
 
@@ -499,25 +564,27 @@ class _TimingScreenState extends State<TimingScreen> {
             //   icon: const Icon(Icons.numbers),
             //   label: const Text('Record Bib Numbers'),
             // ),
-            if (startTime == null && records.isNotEmpty) ...[
-              SizedBox(height: MediaQuery.of(context).size.width * 0.05),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.width * 0.1,
-                  child: ElevatedButton.icon(
-                    onPressed: _navigateToResults,
-                    icon: const Icon(Icons.bar_chart),
-                    label: Text(
-                      'Go to Results',
-                      style: TextStyle(
-                        fontSize: MediaQuery.of(context).size.width * 0.05,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+
+            // if (startTime == null && records.isNotEmpty) ...[
+            //   SizedBox(height: MediaQuery.of(context).size.width * 0.05),
+            //   Padding(
+            //     padding: const EdgeInsets.only(bottom: 16.0),
+            //     child: SizedBox(
+            //       height: MediaQuery.of(context).size.width * 0.1,
+            //       child: ElevatedButton.icon(
+            //         onPressed: _navigateToResults,
+            //         icon: const Icon(Icons.bar_chart),
+            //         label: Text(
+            //           'Go to Results',
+            //           style: TextStyle(
+            //             fontSize: MediaQuery.of(context).size.width * 0.05,
+            //           ),
+            //         ),
+            //       ),
+            //     ),
+            //   ),
+            // ],
+
             // const SizedBox(height: 8),
             // ElevatedButton.icon(
             //   onPressed: _findDevices,
@@ -599,7 +666,7 @@ class _TimingScreenState extends State<TimingScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Time: ${record['formatted_time']}',
+                                  'Time: ${record['finish_time']}',
                                   style: TextStyle(
                                     fontSize: MediaQuery.of(context).size.width * 0.05,
                                     fontWeight: FontWeight.bold,
@@ -612,6 +679,7 @@ class _TimingScreenState extends State<TimingScreen> {
                                     style: TextStyle(
                                       fontSize: MediaQuery.of(context).size.width * 0.04,
                                     ),
+                                    keyboardType: TextInputType.number,
                                     decoration: InputDecoration(
                                       labelText: 'Bib #',
                                       labelStyle: TextStyle(
@@ -625,7 +693,7 @@ class _TimingScreenState extends State<TimingScreen> {
                                         horizontal: MediaQuery.of(context).size.width * 0.03,
                                       ),
                                     ),
-                                    onChanged: (value) => _updateBib(index, value),
+                                    onChanged: (value) => _updateBib(index, int.parse(value)),
                                   ),
                                 ),
                               ],

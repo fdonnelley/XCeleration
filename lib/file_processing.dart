@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:race_timing_app/database_helper.dart';
 
 
-Future<void> processSpreadsheet() async {
+Future<void> processSpreadsheet(int race_id, String location) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: ['csv', 'xlsx'],
@@ -28,11 +28,26 @@ Future<void> processSpreadsheet() async {
           String school = row[2]?.toString() ?? '';
           String bibNumber = row[3]?.toString().replaceAll('"', '') ?? ''; // Remove quotation marks if present
           int bibNumberInt = int.tryParse(bibNumber) ?? -1;
-          print("bibNumberInt:");
-          print(bibNumberInt);
+          // print("bibNumberInt:");
+          // print(bibNumberInt);
 
           if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumber.isNotEmpty && bibNumberInt >= 0) {
-            await DatabaseHelper.instance.insertRunner(name, grade, school, bibNumber);
+            if (location == 'shared') {
+              await DatabaseHelper.instance.insertSharedRunner({
+                'name': name,
+                'school': school,
+                'grade': grade,
+                'bib_number': bibNumberInt,
+              });
+            } else {
+              await DatabaseHelper.instance.insertRaceRunner({
+                'name': name,
+                'school': school,
+                'grade': grade,
+                'bib_number': bibNumberInt,
+                'race_id': race_id,
+              });
+            } 
           } else {
             print('Invalid data in row: $row');
           }
@@ -56,13 +71,28 @@ Future<void> processSpreadsheet() async {
             String school = row[2]?.toString() ?? '';
             String bibNumber = row[3]?.toString().replaceAll('"', '') ?? ''; // Remove quotation marks if present
             int bibNumberInt = int.tryParse(bibNumber) ?? -1;
-            print("bibNumberInt:");
-            print(bibNumberInt);
+            // print("bibNumberInt:");
+            // print(bibNumberInt);
 
             // Validate the parsed data
             if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumberInt >= 0 && bibNumber.isNotEmpty) {
               // Insert into the database
-              await DatabaseHelper.instance.insertRunner(name, grade, school, bibNumber);
+              if (location == 'shared') {
+                await DatabaseHelper.instance.insertSharedRunner({
+                  'name': name,
+                  'school': school,
+                  'grade': grade,
+                  'bib_number': bibNumberInt,
+                });
+              } else {
+                await DatabaseHelper.instance.insertRaceRunner({
+                  'name': name,
+                  'school': school,
+                  'grade': grade,
+                  'bib_number': bibNumberInt,
+                  'race_id': race_id,
+                });
+              } 
             } else {
               print('Invalid data in row: $row');
             }

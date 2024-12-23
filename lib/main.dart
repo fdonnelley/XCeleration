@@ -5,6 +5,7 @@ import 'runners_management.dart';
 import 'screens/bib_number_screen.dart';
 import 'package:provider/provider.dart';
 import 'models/timing_data.dart';
+import 'screens/races_screen.dart';
 
 Process? _flaskProcess;
 
@@ -62,23 +63,25 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3, // Number of tabs
+      length: 2, // Number of tabs
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Race Timing App'),
           bottom: const TabBar(
             tabs: [
-              Tab(icon: Icon(Icons.timer), text: 'Time a Race'),
+              // Tab(icon: Icon(Icons.timer), text: 'Time a Race'),
+              Tab(icon: Icon(Icons.person), text: 'Races'),
               Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
-              Tab(icon: Icon(Icons.person), text: 'Runner Data'),
+              // Tab(icon: Icon(Icons.person), text: 'Runner Data'),
             ],
           ),
         ),
         body: const TabBarView(
           children: [
-            TimingScreen(),
+            // TimingScreen(),
+            RacesScreen(),
             BibNumberScreen(),
-            RunnersManagement(),
+            // RunnersManagement(),
           ],
         ),
       ),
