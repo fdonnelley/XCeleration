@@ -341,6 +341,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                   child: TextField(
                                     focusNode: focusNode,
                                     controller: controller,
+                                    keyboardType: TextInputType.number,
                                     decoration: InputDecoration(
                                       hintText: 'Enter Bib #',
                                       border: OutlineInputBorder(),
