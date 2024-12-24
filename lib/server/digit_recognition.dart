@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img; // Add this import
 
-Future<String> predictDigitsFromPicture(XFile picture) async {
+Future<Map<String, dynamic>> predictDigitsFromPicture(XFile picture) async {
   final url = Uri.parse('http://192.168.1.121:5001/run-find_digits');
   
   // // Rotate the image 90 degrees clockwise
@@ -51,11 +51,11 @@ Future<String> predictDigitsFromPicture(XFile picture) async {
     final responseBody = await response.stream.bytesToString();
     final data = jsonDecode(responseBody);
     print('Result from Python: $data');
-    return data['number'];
+    return data;
   } else {
     print('Failed to call Python function: ${response.statusCode}');
   }
-  return '';
+  return {'number': '', 'confidences': <double>[]};
 }
 
 Future<List<List<double>>> getDigitBoundingBoxes(Uint8List pictureBytes, int width, int height) async {

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:camerawesome/camerawesome_plugin.dart';
 // import 'package:excel/excel.dart';
 import 'package:image/image.dart' as img;
-// import 'package:image_picker/image_picker.dart';
+import 'package:image_picker/image_picker.dart'; // Uncommented the image_picker import
 import '../server/digit_recognition.dart';
 import 'dart:typed_data';
 import 'package:camerawesome/camerawesome_plugin.dart' as camerawesome;
@@ -13,7 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:ui' as ui;
 
 class CameraPage extends StatefulWidget {
-  final Function(String?)? onDigitsDetected;
+  final Function(String?, List<double>?, XFile?)? onDigitsDetected;
   const CameraPage({super.key, this.onDigitsDetected});
 
   @override
@@ -96,9 +96,6 @@ class _CameraPageState extends State<CameraPage> {
               print('Picture taken successfully');
               event.captureRequest.when(
                 single: (SingleCaptureRequest request) async {
-                    // print('Single capture request received');
-                    // await photoState.takePhoto();
-                    // print('Photo taken successfully');
                   final file = request.file;
                   print('File type: ${file?.runtimeType}');
                   if (file == null) {
@@ -106,15 +103,19 @@ class _CameraPageState extends State<CameraPage> {
                     return null;
                   }
                   try {
-                    final digits = await predictDigitsFromPicture(file);
-                    print('Digit prediction successful! Predicted digits: $digits');
+                    final result = await predictDigitsFromPicture(file);
+                    print('Digit prediction successful! Predicted digits: ${result['number']}');
                     if (mounted && context.mounted) {
-                      widget.onDigitsDetected?.call(digits);
+                      widget.onDigitsDetected?.call(
+                        result['number'] as String?,
+                        (result['confidences'] as List<dynamic>).cast<double>(),
+                        file
+                      );
                     }
                   } catch (e) {
                     print('Error predicting digits: $e');
                     if (mounted && context.mounted) {
-                      widget.onDigitsDetected?.call(null);
+                      widget.onDigitsDetected?.call(null, null, null);
                     }
                   }
                 },

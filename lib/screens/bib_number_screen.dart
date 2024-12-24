@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-// import 'package:image_picker/image_picker.dart';
+import 'package:image_picker/image_picker.dart';
 // import 'camera_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:convert';
 import 'test_camera.dart';
+import '../database_helper.dart';
 // import 'package:camera/camera.dart';
 // import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 // import 'package:race_timing_app/bluetooth_service.dart' as app_bluetooth;
@@ -25,12 +26,22 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   // BluetoothDevice? _connectedDevice;
   // List<BluetoothDevice> _availableDevices = [];
 
-  void _addBibNumber() {
+  void _addBibNumber([String bibNumber = '', List<double>? confidences = const [], XFile? image]) async {
+    final index = _bibRecords.length;
     setState(() {
-      _controllers.add(TextEditingController());
+      _controllers.add(TextEditingController(text: bibNumber));
       _focusNodes.add(FocusNode());
-      _bibRecords.add({'bib_number': '', 'position': _bibRecords.length + 1});
+      _bibRecords.add({
+        'bib_number': bibNumber,
+        'confidences': confidences,
+        'image': image,
+        'flags': [], // Initialize flags as an empty list
+      });
     });
+
+    if (bibNumber.isNotEmpty) {
+      await _checkAndFlagBibNumber(index);
+    }
 
     // Automatically focus the last input box
     Future.delayed(Duration.zero, () {
@@ -38,26 +49,62 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     });
   }
 
-  void _updateBibNumber(int index, String bibNumber) {
+  void _updateBibNumber(int index, String bibNumber) async {
     setState(() {
       _bibRecords[index]['bib_number'] = bibNumber;
     });
+    
+    if (bibNumber.isNotEmpty) {
+      await _checkAndFlagBibNumber(index);
+    } else {
+      setState(() {
+        _bibRecords[index]['flags'].clear();
+      });
+    }
   }
+
+  Future<void> _checkAndFlagBibNumber(int index) async {
+    final bibNumber = _bibRecords[index]['bib_number'];
+    final List<String> flags = [];
+    
+    // Check confidence scores
+    final confidences = _bibRecords[index]['confidences'];
+    if (confidences != null && confidences.isNotEmpty) {
+      if (confidences.any((confidence) => confidence < 0.7)) {
+        flags.add('Low confidence score');
+      }
+    }
+    
+    // Check for duplicate numbers
+    for (int i = 0; i < _bibRecords.length; i++) {
+      if (i != index && _bibRecords[i]['bib_number'] == bibNumber) {
+        setState(() {
+          _bibRecords[i]['flags'].add('Duplicate bib number');
+        });
+        flags.add('Duplicate bib number');
+        break;
+      }
+    }
+    
+    // Check if number exists in database
+    final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, int.parse(bibNumber));
+    if (runner == null) {
+      flags.add('Not in race database');
+    }
+    
+    setState(() {
+      _bibRecords[index]['flags'] = flags;
+    });
+  }
+
   void _captureBibNumbersWithCamera() async {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CameraPage(
-          onDigitsDetected: (digits) {
+          onDigitsDetected: (digits, confidences, image) {
             if (digits != null) {
-              setState(() {
-                _controllers.add(TextEditingController(text: digits));
-                _focusNodes.add(FocusNode());
-                _bibRecords.add({
-                  'bib_number': digits,
-                  'position': _bibRecords.length + 1
-                });
-              });
+              _addBibNumber(digits, confidences, image);
             }
           },
         ),
@@ -282,25 +329,34 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                     child: Card(
                       elevation: 2,
                       margin: const EdgeInsets.symmetric(vertical: 6.0),
+                      color: _bibRecords[index]['flags'].isNotEmpty? Colors.red[50] : null,
                       child: Padding(
                         padding: const EdgeInsets.all(12.0),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: TextField(
-                                focusNode: focusNode,
-                                controller: controller,
-                                decoration: InputDecoration(
-                                  hintText: 'Enter Bib #',
-                                  border: OutlineInputBorder(),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    focusNode: focusNode,
+                                    controller: controller,
+                                    decoration: InputDecoration(
+                                      hintText: 'Enter Bib #',
+                                      border: OutlineInputBorder(),
+                                      errorText: _bibRecords[index]['flags'].isNotEmpty
+                                          ? _bibRecords[index]['flags'].join(', ')
+                                          : null,
+                                    ),
+                                    onChanged: (value) => _updateBibNumber(index, value),
+                                  ),
                                 ),
-                                onChanged: (value) => _updateBibNumber(index, value),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () => _deleteBibNumber(index),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.delete),
+                                  onPressed: () => _deleteBibNumber(index),
+                                ),
+                              ],
                             ),
                           ],
                         ),

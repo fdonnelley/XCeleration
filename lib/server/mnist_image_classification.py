@@ -166,7 +166,7 @@ def get_uploaded_image_from_brga_bytes(request):
 # Format the predicted digits and their confidences into a JSON response.
 def format_digits_and_confidences_to_response(digits, confidences):
   numbers_array_str = list(digits.astype(str))
-  confidences_array_str = list(confidences.astype(str))
+  confidences_array_str = list(confidences.astype(float))
   number = ''.join(numbers_array_str)
   # print(confidences_array_str, number)
   return jsonify({"number": number, 'confidences': confidences_array_str})
