@@ -99,6 +99,18 @@ class DatabaseHelper {
     return results.isNotEmpty ? results.first : null;
   }
 
+  
+  // Delete a shared runner
+  Future<int> deleteSharedRunner(int bib) async {
+    final db = await instance.database;
+    return await db.delete(
+      'shared_runners',
+      where: 'bib_number = ?',
+      whereArgs: [bib],
+    );
+  }
+
+
   // Races Methods
   Future<int> insertRace(Map<String, dynamic> race) async {
     final db = await instance.database;
@@ -263,6 +275,12 @@ class DatabaseHelper {
       await txn.delete('race_runners', where: 'race_id = ?', whereArgs: [raceId]);
     });
   }
+  
+  Future<void> clearSharedRunners() async {
+    final db = await instance.database;
+    await db.rawUpdate('UPDATE shared_runners SET name = \'\', school = \'\', grade = 0, bib_number = 0');
+  }
+
 
   Future<void> deleteDatabase() async {
     String path = join(await getDatabasesPath(), 'races.db');

@@ -6,10 +6,12 @@ import 'package:race_timing_app/database_helper.dart';
 
 class RunnersManagement extends StatefulWidget {
   final int raceId;
+  final bool shared;
 
   const RunnersManagement({
     Key? key, 
     required this.raceId,
+    required this.shared,
   }) : super(key: key);
 
   @override
@@ -27,21 +29,30 @@ class _RunnersManagementState extends State<RunnersManagement> {
   // List<Map<String, dynamic>> _sharedRunners = [];
 
   late int raceId;
+  late bool shared;
 
   @override
   void initState() {
     super.initState();
     raceId = widget.raceId;
+    shared = widget.shared;
     _loadRunners(); // Load runners when the widget is initialized.
   }
 
   Future<void> _loadRunners() async {
     // Fetch runners from the database
-    final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
-    final sharedRunners = await DatabaseHelper.instance.getAllSharedRunners();
-    setState(() {
-      _runners = [...runners, ...sharedRunners]; // Update the state with the fetched runners, including shared runners
-    });
+    if (shared == true) {
+      final sharedRunners = await DatabaseHelper.instance.getAllSharedRunners();
+      setState(() {
+        _runners = sharedRunners; // Update the state with the fetched runners, including shared runners
+      });
+    }
+    else{
+      final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
+      setState(() {
+        _runners = runners; // Update the state with the fetched runners, including shared runners
+      });
+    }
   }
 
   Future<void> _addRunner() async {
@@ -57,13 +68,24 @@ class _RunnersManagementState extends State<RunnersManagement> {
       return;
     }
 
-    await DatabaseHelper.instance.insertRaceRunner({
-      'name': name,
-      'school': school,
-      'grade': grade,
-      'bib_number': bib,
-      'race_id': raceId,
-    });
+    if (shared == true) {
+      await DatabaseHelper.instance.insertSharedRunner({
+        'name': name,
+        'school': school,
+        'grade': grade,
+        'bib_number': bib,
+        'race_id': raceId,
+      });
+    }
+    else{
+      await DatabaseHelper.instance.insertRaceRunner({
+        'name': name,
+        'school': school,
+        'grade': grade,
+        'bib_number': bib,
+        'race_id': raceId,
+      });
+    }
     _nameController.clear();
     _gradeController.clear();
     _schoolController.clear();
@@ -82,7 +104,12 @@ class _RunnersManagementState extends State<RunnersManagement> {
       return;
     }
 
-    await DatabaseHelper.instance.deleteRaceRunner(raceId, bib);
+    if (shared == true) {
+      await DatabaseHelper.instance.deleteSharedRunner(bib);
+    }
+    else {
+      await DatabaseHelper.instance.deleteRaceRunner(raceId, bib);
+    }
     _deleteBibController.clear();
     _loadRunners();
     Navigator.of(context).pop(); // Close the popup
@@ -144,7 +171,7 @@ class _RunnersManagementState extends State<RunnersManagement> {
   }
 
   Future<void> _loadSpreadsheet() async {
-    await processSpreadsheet(raceId, 'not_shared');
+    await processSpreadsheet(raceId, shared);
     _loadRunners(); // Reload runners after processing spreadsheet
   }
 
@@ -167,7 +194,12 @@ class _RunnersManagementState extends State<RunnersManagement> {
       ),
     );
     if (confirmed == true) {
-      await DatabaseHelper.instance.deleteAllRaceRunners(raceId);
+      if (shared == true) {
+        await DatabaseHelper.instance.clearSharedRunners();
+      }
+      else {
+        await DatabaseHelper.instance.deleteAllRaceRunners(raceId);
+      }
       _loadRunners();
     }
   }
@@ -175,7 +207,7 @@ class _RunnersManagementState extends State<RunnersManagement> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Runners Management')),
+      // appBar: AppBar(title: const Text('Runners Management')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

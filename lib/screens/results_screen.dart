@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:collection/collection.dart';
 import 'package:race_timing_app/database_helper.dart';import 'package:flutter/material.dart';
 import 'package:race_timing_app/utils/time_formatter.dart';
 import 'package:race_timing_app/utils/csv_utils.dart';
@@ -180,13 +181,22 @@ class ResultsScreenState extends State<ResultsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '${team['place']}. ${team['school']}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                if (team['place'] != null)
+                  Text(
+                    '${team['place']}. ${team['school']}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
+                if (team['place'] == null)
+                  Text(
+                    '${team['school']}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 Text(
                   '${team['score']} Points',
                   style: const TextStyle(
@@ -202,10 +212,11 @@ class ResultsScreenState extends State<ResultsScreen> {
               style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 4),
-            Text(
-              'Times: ${team['times']}',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
-            ),
+            if (team['place'] != null)
+              Text(
+                'Times: ${team['times']}',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
           ],
         ),
       ),
@@ -357,37 +368,76 @@ class ResultsScreenState extends State<ResultsScreen> {
     return headToHeadResults;
   }
 
+  // Get the names of the scoring teams (teams with 5 or more runners)
+  // and non-scoring teams
+  List<List<String>> _getTeamInfo(List<Map<String, dynamic>> allRunners) {
+    final scoringTeams = <String>[];
+    final nonScoringTeams = <String>[];
+
+    final teams = groupBy(allRunners, (runner) => runner['school']);
+
+    teams.forEach((school, runners) {
+      if (runners.length >= 5) {
+        scoringTeams.add(school);
+      } else {
+        nonScoringTeams.add(school);
+      }
+    });
+
+    return [scoringTeams, nonScoringTeams];
+  }
+
+  // Get the runners corresponding to a given team
+  List<Map<String, dynamic>> _getRunnersForTeam(List<Map<String, dynamic>> allRunners, String teamName) {
+    return allRunners.where((runner) => runner['school'] == teamName).toList();
+  }
+
+  // Get the runners corresponding to a list of teams
+  List<Map<String, dynamic>> _getRunnersForTeams(List<Map<String, dynamic>> allRunners, List<String> teams) {
+    return allRunners.where((runner) => teams.contains(runner['school'])).toList();
+  }
+
   List<Map<String, dynamic>> _calculateTeamResults(List<Map<String, dynamic>> allRunners) {
     final Map<String, List<Map<String, dynamic>>> teams = {};
+    final List<List<String>> team_info = _getTeamInfo(allRunners);
 
-    // Group runners by school
-    for (final runner in allRunners) {
-      final school = runner['school'];
-      if (school == null) {
-        continue;
-      }
-      if (!teams.containsKey(school)) {
-        teams[school] = [];
-      }
-      teams[school]!.add(runner);
-    }
+    final scoringTeams = team_info[0];
+    final nonScoringTeams = team_info[1];
+
+    final scoringRunners = _getRunnersForTeams(allRunners, scoringTeams);
+    // final nonScoringRunners = _getRunnersForTeams(allRunners, nonScoringTeams);
+
+    // // Group runners by school
+    // for (final runner in allRunners) {
+    //   final school = runner['school'];
+    //   if (school == null) {
+    //     continue;
+    //   }
+    //   if (!teams.containsKey(school)) {
+    //     teams[school] = [];
+    //   }
+    //   teams[school]!.add(runner);
+    // }
+
+    
 
     // Calculate scores for each team
     final teamScores = <Map<String, dynamic>>[];
+    final nonScoringTeamScores = <Map<String, dynamic>>[];
     int place = 1;
 
-    teams.forEach((school, runners) {
-      if (runners.length < 5) return; // Skip teams with fewer than 5 runners
+    scoringTeams.forEach((school) {
+      final schoolRunners = _getRunnersForTeam(allRunners, school);
 
       // Sort runners by time
-      runners.sort((a, b) => a['finishTimeAsDuration'].compareTo(b['finishTimeAsDuration']));
+      schoolRunners.sort((a, b) => a['finishTimeAsDuration'].compareTo(b['finishTimeAsDuration']));
 
       // Calculate team score and other stats
-      final top5 = runners.take(5).toList();
-      final sixthRunner = runners.length > 5 ? allRunners.indexOf(runners[5]) + 1 : null;
-      final seventhRunner = runners.length > 6 ? allRunners.indexOf(runners[6]) + 1 : null;
-      final score = top5.fold<int>(0, (sum, runner) => sum + allRunners.indexOf(runner) + 1); // Calculate position based on time
-      final scorers = '${top5.map((runner) => '${allRunners.indexOf(runner) + 1}').join('+')} ${sixthRunner != null ? '($sixthRunner' : ''}${seventhRunner != null ? '+$seventhRunner' : ''}${sixthRunner != null || seventhRunner != null ? ')' : ''}';
+      final top5 = schoolRunners.take(5).toList();
+      final sixthRunner = schoolRunners.length > 5 ? scoringRunners.indexOf(schoolRunners[5]) + 1 : null;
+      final seventhRunner = schoolRunners.length > 6 ? scoringRunners.indexOf(schoolRunners[6]) + 1 : null;
+      final score = top5.fold<int>(0, (sum, runner) => sum + scoringRunners.indexOf(runner) + 1); // Calculate position based on time
+      final scorers = '${top5.map((runner) => '${scoringRunners.indexOf(runner) + 1}').join('+')} ${sixthRunner != null ? '($sixthRunner' : ''}${seventhRunner != null ? '+$seventhRunner' : ''}${sixthRunner != null || seventhRunner != null ? ')' : ''}';
 
       final split = top5.last['finishTimeAsDuration'] - top5.first['finishTimeAsDuration'];
       final formattedSplit = formatDuration(split);
@@ -405,6 +455,19 @@ class ResultsScreenState extends State<ResultsScreen> {
       });
     });
 
+    nonScoringTeams.forEach((school) {
+      // final scorers = runners.map((runner) => '${allRunners.indexOf(runner) + 1}').join('+');
+      nonScoringTeamScores.add({
+        'place': null,
+        'school': school,
+        'score': "N/A",
+        'scorers': "N/A",
+        'times': "N/A",
+        'sixth_runner': null,
+        'seventh_runner': null,
+      });
+    });
+
     // Sort teams by score (and apply tiebreakers if necessary)
     teamScores.sort((a, b) {
       if (a['score'] != b['score']) return a['score'].compareTo(b['score']);
@@ -413,6 +476,9 @@ class ResultsScreenState extends State<ResultsScreen> {
       return 0;
     });
 
-    return teamScores;
+    nonScoringTeamScores.sort((a, b) => a['school'].compareTo(b['school']));
+
+
+    return [...teamScores, ...nonScoringTeamScores];
   }
 }

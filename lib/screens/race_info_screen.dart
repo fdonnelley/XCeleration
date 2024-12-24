@@ -133,9 +133,9 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
   Widget build(BuildContext context) {
     if (race == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text('Loading...'),
-        ),
+        // appBar: AppBar(
+          // title: Text('Loading...'),
+        // ),
         body: Center(
           child: CircularProgressIndicator(), // Show loading indicator
         ),
@@ -148,11 +148,11 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
                      _distance != race!.distance;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_name.isNotEmpty ? _name : 'Loading...'),
-        elevation: 0,
-        backgroundColor: Colors.blueAccent,
-      ),
+      // appBar: AppBar(
+        // title: Text(_name.isNotEmpty ? _name : 'Loading...'),
+      //   elevation: 0,
+      //   backgroundColor: Colors.blueAccent,
+      // ),
       body: Column(
         children: [
           Expanded(

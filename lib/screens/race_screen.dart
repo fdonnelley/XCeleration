@@ -8,7 +8,8 @@ import '../database_helper.dart';
 import '../models/race.dart';
 import 'race_info_screen.dart';
 import 'results_screen.dart';
-import 'races_screen.dart';
+import '../main.dart';
+// import 'races_screen.dart';
 
 class RaceScreen extends StatefulWidget {
   final Race race;
@@ -24,11 +25,22 @@ class RaceScreen extends StatefulWidget {
 
 class _RaceScreenState extends State<RaceScreen> {
   late Race race;
+  String raceName = '';
+
 
   @override
   void initState() {
     super.initState();
     race = widget.race;
+    _fetchRaceData();
+  }
+
+  void _fetchRaceData() async {
+    // Fetch race data from the database
+    final raceData = await DatabaseHelper.instance.getRaceById(race.race_id);
+    setState(() {
+      raceName = raceData?['race_name'] ?? 'Default Race Name'; // Update the race name
+    });
   }
 
   @override
@@ -61,7 +73,7 @@ class _RaceScreenState extends State<RaceScreen> {
                   Navigator.pushReplacement(
                     context,
                     PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) => RacesScreen(),
+                      pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
                       transitionsBuilder: (context, animation, secondaryAnimation, child) {
                         const begin = Offset(-1.0, 0.0); // Move from left to right
                         const end = Offset.zero; // Final position
@@ -79,7 +91,7 @@ class _RaceScreenState extends State<RaceScreen> {
                   );
                 },
               ),
-              title: Text(race.race_name),
+              title: Text(raceName),
               bottom: TabBar(
                 tabs: tabs,
               ),
@@ -89,7 +101,7 @@ class _RaceScreenState extends State<RaceScreen> {
                     RaceInfoScreen(raceId: race.race_id),
                     if (showResults) ResultsScreen(raceId: race.race_id) else TimingScreen(raceId: race.race_id),
                     // BibNumberScreen (),
-                    RunnersManagement(raceId: race.race_id),
+                    RunnersManagement(raceId: race.race_id, shared: false),
                 ],
             ),
           ),

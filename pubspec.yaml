@@ -34,11 +34,11 @@ dependencies:
   csv: ^5.0.2  # For CSV parsing
   excel: ^2.0.3  # For Excel parsing
   sqflite: ^2.2.8
-  path: ^1.8.3
   image_picker: ^0.8.7+5
   file_selector_macos: ^0.8.0
   camera: ^0.11.0+2
   flutter_blue_plus: ^1.0.0
+  # url_launcher: 6.1.14  # Adding specific version for macOS compatibility
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -57,6 +57,7 @@ dependencies:
   open_file: ^3.5.10
   image: ^4.3.0
   provider: ^6.0.0
+  collection: ^1.15.0
 
 dev_dependencies:
   flutter_test:

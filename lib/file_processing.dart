@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:race_timing_app/database_helper.dart';
 
 
-Future<void> processSpreadsheet(int race_id, String location) async {
+Future<void> processSpreadsheet(int race_id, bool shared) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: ['csv', 'xlsx'],
@@ -32,7 +32,7 @@ Future<void> processSpreadsheet(int race_id, String location) async {
           // print(bibNumberInt);
 
           if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumber.isNotEmpty && bibNumberInt >= 0) {
-            if (location == 'shared') {
+            if (shared == true) {
               await DatabaseHelper.instance.insertSharedRunner({
                 'name': name,
                 'school': school,
@@ -77,7 +77,7 @@ Future<void> processSpreadsheet(int race_id, String location) async {
             // Validate the parsed data
             if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumberInt >= 0 && bibNumber.isNotEmpty) {
               // Insert into the database
-              if (location == 'shared') {
+              if (shared == true) {
                 await DatabaseHelper.instance.insertSharedRunner({
                   'name': name,
                   'school': school,

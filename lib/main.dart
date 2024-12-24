@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 // import 'screens/timing_screen.dart';
-// import 'runners_management.dart';
+import 'runners_management.dart';
 import 'screens/bib_number_screen.dart';
 import 'package:provider/provider.dart';
 import 'models/timing_data.dart';
@@ -63,7 +63,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2, // Number of tabs
+      length: 3, // Number of tabs
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: Size.fromHeight(80.0),
@@ -73,6 +73,7 @@ class HomeScreen extends StatelessWidget {
               tabs: [
                 Tab(icon: Icon(Icons.person), text: 'Races'),
                 Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
+                Tab(icon: Icon(Icons.person), text: 'Shared Runner Data'),
               ],
             ),
           ),
@@ -81,6 +82,7 @@ class HomeScreen extends StatelessWidget {
           children: [
             RacesScreen(),
             BibNumberScreen(),
+            RunnersManagement(raceId: 0, shared: true),
           ],
         ),
       ),

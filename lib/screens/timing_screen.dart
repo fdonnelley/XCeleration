@@ -403,12 +403,28 @@ class _TimingScreenState extends State<TimingScreen> {
       }
 
       await DatabaseHelper.instance.insertRaceResults(records);
-      
-      // Navigate to the results page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => ResultsScreen(raceId: raceId)), // Adjust to your actual results screen widget
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Results saved successfully. Refresh page to view?'),
+          action: SnackBarAction(
+            label: 'Refresh',
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => TimingScreen(raceId: raceId)),
+              );
+            },
+          ),
+        ),
       );
+
+      
+      // // Navigate to the results page
+      // Navigator.pushReplacement(
+      //   context,
+      //   MaterialPageRoute(builder: (context) => ResultsScreen(raceId: raceId)), // Adjust to your actual results screen widget
+      // );
     } else {
       _showErrorMessage('All runners must have a bib number assigned before proceeding.');
     }
@@ -431,7 +447,7 @@ class _TimingScreenState extends State<TimingScreen> {
     final controllers = Provider.of<TimingData>(context, listen: false).controllers;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Race Timing')),
+      // appBar: AppBar(title: const Text('Race Timing')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
