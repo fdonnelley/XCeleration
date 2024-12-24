@@ -411,7 +411,7 @@ def get_digit_bounding_boxes(image):
   # start_time = time.time()  # Start timing
   pre_processed_image = pre_process_image(image)
   # end_time = time.time()  # End timing
-  duration = end_time - start_time
+  # duration = end_time - start_time
   # print(f"get_digit_bounding_boxes took {duration:.4f} seconds")
   return extract_digit_bounding_boxes_from_processed_image(pre_processed_image, debug=False)
 
