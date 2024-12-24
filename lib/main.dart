@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'screens/timing_screen.dart';
-import 'runners_management.dart';
+// import 'screens/timing_screen.dart';
+// import 'runners_management.dart';
 import 'screens/bib_number_screen.dart';
 import 'package:provider/provider.dart';
 import 'models/timing_data.dart';
@@ -65,23 +65,22 @@ class HomeScreen extends StatelessWidget {
     return DefaultTabController(
       length: 2, // Number of tabs
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Race Timing App'),
-          bottom: const TabBar(
-            tabs: [
-              // Tab(icon: Icon(Icons.timer), text: 'Time a Race'),
-              Tab(icon: Icon(Icons.person), text: 'Races'),
-              Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
-              // Tab(icon: Icon(Icons.person), text: 'Runner Data'),
-            ],
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(80.0),
+          child: AppBar(
+            // title: const Text('Race Timing App'),
+            bottom: const TabBar(
+              tabs: [
+                Tab(icon: Icon(Icons.person), text: 'Races'),
+                Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
+              ],
+            ),
           ),
         ),
         body: const TabBarView(
           children: [
-            // TimingScreen(),
             RacesScreen(),
             BibNumberScreen(),
-            // RunnersManagement(),
           ],
         ),
       ),

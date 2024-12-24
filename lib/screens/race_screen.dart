@@ -8,6 +8,7 @@ import '../database_helper.dart';
 import '../models/race.dart';
 import 'race_info_screen.dart';
 import 'results_screen.dart';
+import 'races_screen.dart';
 
 class RaceScreen extends StatefulWidget {
   final Race race;
@@ -54,7 +55,31 @@ class _RaceScreenState extends State<RaceScreen> {
           length: tabs.length, 
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('Race Timing App'),
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back_ios),
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => RacesScreen(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(-1.0, 0.0); // Move from left to right
+                        const end = Offset.zero; // Final position
+                        const curve = Curves.easeInOut;
+
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        var offsetAnimation = animation.drive(tween);
+
+                        return SlideTransition(
+                          position: offsetAnimation,
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              title: Text(race.race_name),
               bottom: TabBar(
                 tabs: tabs,
               ),

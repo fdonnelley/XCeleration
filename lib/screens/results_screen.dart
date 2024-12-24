@@ -100,29 +100,6 @@ class ResultsScreenState extends State<ResultsScreen> {
                     ),
                   ],
                 ),
-
-                // Download Button
-                // const SizedBox(height: 24),
-                // LayoutBuilder(
-                //   builder: (context, constraints) {
-                //     double buttonWidth = min(constraints.maxWidth * 0.5, 200); // 50% of the available width
-                //     double fontSize = buttonWidth * 0.08; // Scalable font size based on width
-                //     return ElevatedButton.icon(
-                //       onPressed: () => downloadCsv(teamResults, individualResults),
-                //       icon: const Icon(Icons.download),
-                //       label: Text(
-                //         'Download CSV Results',
-                //         style: TextStyle(fontSize: fontSize),
-                //       ),
-                //       style: ElevatedButton.styleFrom(
-                //         minimumSize: Size(200, 60), // Minimum width of 200 and height of 60
-                //         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                //         fixedSize: Size(buttonWidth, 60), // Set width proportional to screen size
-                //       ),
-                //     );
-                //   },
-                // ),
-
                 
                 const SizedBox(height: 16),
 

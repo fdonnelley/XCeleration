@@ -153,124 +153,128 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
         elevation: 0,
         backgroundColor: Colors.blueAccent,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.blueAccent, Colors.white],
-            stops: [0, 0.2],
-          ),
-        ),
-        child: SingleChildScrollView(
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Race Information',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        _buildTextField(
-                          label: 'Race Name',
-                          controller: _nameController,
-                          onChanged: (value) => setState(() => _name = value),
-                          prefixIcon: const Icon(Icons.emoji_events_outlined),
-                        ),
-                        _buildTextField(
-                          label: 'Location',
-                          controller: _locationController,
-                          onChanged: (value) => setState(() => _location = value),
-                          prefixIcon: const Icon(Icons.location_on_outlined),
-                        ),
-                        _buildTextField(
-                          label: 'Date',
-                          controller: _dateController,
-                          onChanged: (value) => setState(() => _date = value),
-                          prefixIcon: const Icon(Icons.calendar_today_outlined),
-                          hintText: 'YYYY-MM-DD',
-                        ),
-                        _buildTextField(
-                          label: 'Distance',
-                          controller: _distanceController,
-                          onChanged: (value) {
-                            final doubleDistance = double.tryParse(value);
-                            if (doubleDistance != null) {
-                              setState(() => _distance = doubleDistance);
-                            }
-                          },
-                          keyboardType: TextInputType.number,
-                          prefixIcon: const Icon(Icons.straighten),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (hasChanges) ...[
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          await DatabaseHelper.instance.updateRace({
-                            'race_id': race?.race_id,
-                            'race_name': _name,
-                            'location': _location,
-                            'race_date': _date,
-                            'distance': _distance,
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Changes saved successfully'),
-                              behavior: SnackBarBehavior.floating,
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blueAccent,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
+                          ],
                         ),
-                        child: const Text(
-                          'Save Changes',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Race Information',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            _buildTextField(
+                              label: 'Race Name',
+                              controller: _nameController,
+                              onChanged: (value) => setState(() => _name = value),
+                              prefixIcon: const Icon(Icons.emoji_events_outlined),
+                            ),
+                            _buildTextField(
+                              label: 'Location',
+                              controller: _locationController,
+                              onChanged: (value) => setState(() => _location = value),
+                              prefixIcon: const Icon(Icons.location_on_outlined),
+                            ),
+                            _buildTextField(
+                              label: 'Date',
+                              controller: _dateController,
+                              onChanged: (value) {
+                                setState(() => _date = value);
+                                final date = DateTime.tryParse(value);
+                                if (date != null) {
+                                  setState(() => _date = date.toString());
+                                }
+                              },
+                              prefixIcon: const Icon(Icons.calendar_today_outlined),
+                              hintText: 'YYYY-MM-DD',
+                              keyboardType: TextInputType.datetime,
+                            ),
+                            _buildTextField(
+                              label: 'Distance',
+                              controller: _distanceController,
+                              onChanged: (value) {
+                                final doubleDistance = double.tryParse(value);
+                                if (doubleDistance != null) {
+                                  setState(() => _distance = doubleDistance);
+                                }
+                              },
+                              keyboardType: TextInputType.number,
+                              prefixIcon: const Icon(Icons.straighten),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
-                ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+          if (hasChanges) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  await DatabaseHelper.instance.updateRace({
+                    'race_id': race?.race_id,
+                    'race_name': _name,
+                    'location': _location,
+                    'race_date': _date,
+                    'distance': _distance,
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Changes saved successfully'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                child: const Text(
+                  'Save Changes',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 15),
+          ],
+        ],
       ),
     );
   }
