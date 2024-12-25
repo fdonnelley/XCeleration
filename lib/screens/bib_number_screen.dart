@@ -75,6 +75,12 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       }
     }
     
+    // Check if number exists in database
+    final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, int.parse(bibNumber));
+    if (runner == null) {
+      flags.add('Not in race database');
+    }
+
     // Check for duplicate numbers
     for (int i = 0; i < _bibRecords.length; i++) {
       if (i != index && _bibRecords[i]['bib_number'] == bibNumber) {
@@ -84,12 +90,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         flags.add('Duplicate bib number');
         break;
       }
-    }
-    
-    // Check if number exists in database
-    final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, int.parse(bibNumber));
-    if (runner == null) {
-      flags.add('Not in race database');
     }
     
     setState(() {
@@ -341,6 +341,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                   child: TextField(
                                     focusNode: focusNode,
                                     controller: controller,
+                                    keyboardType: TextInputType.number,
                                     decoration: InputDecoration(
                                       hintText: 'Enter Bib #',
                                       border: OutlineInputBorder(),

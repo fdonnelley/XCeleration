@@ -22,6 +22,15 @@ import time
 debug = False
 save = False
 
+@keras.saving.register_keras_serializable()
+class CalibrationLayer(Layer):
+    def __init__(self, temperature=1.0, **kwargs):
+        super(CalibrationLayer, self).__init__(**kwargs)
+        self.temperature = tf.Variable(initial_value=temperature, trainable=False, dtype=tf.float32, name='temperature')
+
+    def call(self, inputs):
+        return inputs / self.temperature
+
 def load_model_from_file(file_path):
   model_path = os.path.abspath(file_path)
   return load_model(model_path)
