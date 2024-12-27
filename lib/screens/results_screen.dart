@@ -399,10 +399,10 @@ class ResultsScreenState extends State<ResultsScreen> {
 
   List<Map<String, dynamic>> _calculateTeamResults(List<Map<String, dynamic>> allRunners) {
     final Map<String, List<Map<String, dynamic>>> teams = {};
-    final List<List<String>> team_info = _getTeamInfo(allRunners);
+    final List<List<String>> teamInfo = _getTeamInfo(allRunners);
 
-    final scoringTeams = team_info[0];
-    final nonScoringTeams = team_info[1];
+    final scoringTeams = teamInfo[0];
+    final nonScoringTeams = teamInfo[1];
 
     final scoringRunners = _getRunnersForTeams(allRunners, scoringTeams);
     // final nonScoringRunners = _getRunnersForTeams(allRunners, nonScoringTeams);
@@ -426,7 +426,7 @@ class ResultsScreenState extends State<ResultsScreen> {
     final nonScoringTeamScores = <Map<String, dynamic>>[];
     int place = 1;
 
-    scoringTeams.forEach((school) {
+    for (var school in scoringTeams) {
       final schoolRunners = _getRunnersForTeam(allRunners, school);
 
       // Sort runners by time
@@ -453,9 +453,9 @@ class ResultsScreenState extends State<ResultsScreen> {
         'sixth_runner': sixthRunner,
         'seventh_runner': seventhRunner,
       });
-    });
+    }
 
-    nonScoringTeams.forEach((school) {
+    for (var school in nonScoringTeams) {
       // final scorers = runners.map((runner) => '${allRunners.indexOf(runner) + 1}').join('+');
       nonScoringTeamScores.add({
         'place': null,
@@ -466,7 +466,7 @@ class ResultsScreenState extends State<ResultsScreen> {
         'sixth_runner': null,
         'seventh_runner': null,
       });
-    });
+    }
 
     // Sort teams by score (and apply tiebreakers if necessary)
     teamScores.sort((a, b) {

@@ -6,7 +6,7 @@ import '../database_helper.dart';
 import 'race_screen.dart';
 
 class RacesScreen extends StatefulWidget {
-  const RacesScreen({Key? key}) : super(key: key);
+  const RacesScreen({super.key});
 
   @override
   _RacesScreenState createState() => _RacesScreenState();
@@ -93,8 +93,8 @@ class _RacesScreenState extends State<RacesScreen> {
                   );
                   return;
                 }
-                var date;
-                var distance;
+                DateTime date;
+                double distance;
                 try {
                   date = DateTime.parse(dateController.text);
                   if (date.year < 1900) {

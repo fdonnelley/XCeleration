@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 toRace(Map<String, dynamic> race) {
     double distanceValue = race['distance'] is double 

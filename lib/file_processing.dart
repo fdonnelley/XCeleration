@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:race_timing_app/database_helper.dart';
 
 
-Future<void> processSpreadsheet(int race_id, bool shared) async {
+Future<void> processSpreadsheet(int raceId, bool shared) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: ['csv', 'xlsx'],
@@ -45,7 +45,7 @@ Future<void> processSpreadsheet(int race_id, bool shared) async {
                 'school': school,
                 'grade': grade,
                 'bib_number': bibNumberInt,
-                'race_id': race_id,
+                'race_id': raceId,
               });
             } 
           } else {
@@ -90,7 +90,7 @@ Future<void> processSpreadsheet(int race_id, bool shared) async {
                   'school': school,
                   'grade': grade,
                   'bib_number': bibNumberInt,
-                  'race_id': race_id,
+                  'race_id': raceId,
                 });
               } 
             } else {

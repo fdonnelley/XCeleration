@@ -226,9 +226,9 @@ class DatabaseHelper {
   Future<void> insertRaceResults(List<Map<String, dynamic>> results) async {
     final db = await instance.database;
     final batch = db.batch();
-    results.forEach((result) {
+    for (var result in results) {
       batch.insert('race_results', result);
-    });
+    }
     await batch.commit();
     return;
   }

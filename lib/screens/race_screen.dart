@@ -15,9 +15,9 @@ class RaceScreen extends StatefulWidget {
   final Race race;
 
   const RaceScreen({
-    Key? key, 
+    super.key, 
     required this.race,
-  }) : super(key: key);
+  });
 
   @override
   _RaceScreenState createState() => _RaceScreenState();

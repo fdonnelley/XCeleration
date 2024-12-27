@@ -5,9 +5,9 @@ import 'package:race_timing_app/models/race.dart';
 class RaceInfoScreen extends StatefulWidget {
   final int raceId;
   const RaceInfoScreen({
-    Key? key, 
+    super.key, 
     required this.raceId,
-  }) : super(key: key);
+  });
 
   @override
   _RaceInfoScreenState createState() => _RaceInfoScreenState();

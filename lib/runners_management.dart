@@ -9,10 +9,10 @@ class RunnersManagement extends StatefulWidget {
   final bool shared;
 
   const RunnersManagement({
-    Key? key, 
+    super.key, 
     required this.raceId,
     required this.shared,
-  }) : super(key: key);
+  });
 
   @override
   State<RunnersManagement> createState() => _RunnersManagementState();
@@ -95,7 +95,7 @@ class _RunnersManagementState extends State<RunnersManagement> {
   }
 
   Future<void> _deleteRunner() async {
-    final bib = int.tryParse(_deleteBibController.text) ?? null;
+    final bib = int.tryParse(_deleteBibController.text);
 
     if (bib == null) {
       ScaffoldMessenger.of(context).showSnackBar(

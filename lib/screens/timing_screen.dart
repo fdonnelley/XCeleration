@@ -15,9 +15,9 @@ class TimingScreen extends StatefulWidget {
   final int raceId;
 
   const TimingScreen({
-    Key? key, 
+    super.key, 
     required this.raceId,
-  }) : super(key: key);
+  });
 
 
   @override
