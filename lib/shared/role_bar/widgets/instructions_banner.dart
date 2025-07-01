@@ -43,7 +43,7 @@ class InstructionsBanner extends StatelessWidget {
     final key = 'instructions_shown_${role.name}';
     final hasShownBefore = prefs.getBool(key) ?? false;
 
-    if (!hasShownBefore) {
+    if (!hasShownBefore && context.mounted) {
       await DialogUtils.showMessageDialog(
         context,
         title: 'Instructions',
@@ -51,7 +51,7 @@ class InstructionsBanner extends StatelessWidget {
         doneText: 'Got it',
         barrierTint: 0.3,
       );
-      
+
       // Mark instructions as shown for this role
       await prefs.setBool(key, true);
     }
