@@ -75,21 +75,18 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
         animation: widget.controller,
         builder: (context, _) {
           final race = widget.controller.race!;
-          final isSetup = race.flowState == 'setup';
           bool hasTeams = race.teams.isNotEmpty;
           int runnerCount = 0;
 
           return FutureBuilder(
             future: DatabaseHelper.instance.getRaceRunners(race.raceId),
             builder: (context, snapshot) {
-              // Default value for runners count
               runnerCount = snapshot.hasData
                   ? (snapshot.data as List).length
                   : runnerCount;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Details section
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -100,9 +97,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                             ),
                       ),
                       const SizedBox(height: 16),
-
-                      // Form fields using new components
-                      isSetup
+                      widget.controller.isInEditMode
                           ? Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -198,7 +193,6 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                               ],
                             ),
                       const SizedBox(height: 16),
-                      // Clickable runners row with chevron - using custom layout
                       InkWell(
                         onTap: widget.controller.race?.flowState == 'finished'
                             ? _toggleView
@@ -207,7 +201,6 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                           margin: const EdgeInsets.only(bottom: 16),
                           child: Row(
                             children: [
-                              // Icon container - same style as ModernDetailRow
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
@@ -219,7 +212,6 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                     color: AppColors.primaryColor, size: 22),
                               ),
                               const SizedBox(width: 16),
-                              // Content area
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +236,6 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                   ],
                                 ),
                               ),
-                              // Chevron icon - only show when race is finished
                               if (widget.controller.race?.flowState ==
                                   'finished')
                                 Row(
@@ -258,22 +249,27 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                     ),
                                   ],
                                 ),
-                              if (isSetup && hasTeams) ...[
+                              if ((widget.controller.isInEditMode &&
+                                  hasTeams)) ...[
                                 SecondaryButton(
-                                  text: 'Load Runners',
-                                  icon: Icons.person_add,
+                                  text: runnerCount > 0
+                                      ? 'Edit Runners'
+                                      : 'Load Runners',
+                                  icon: runnerCount > 0
+                                      ? Icons.edit
+                                      : Icons.person_add,
                                   onPressed: () => widget.controller
-                                      .loadRunnersManagementScreen(context),
+                                      .loadRunnersManagementScreenWithConfirmation(
+                                          context),
                                 ),
-                              ]
+                              ],
                             ],
                           ),
                         ),
                       )
                     ],
                   ),
-                  // Add Save Changes button at the bottom when in setup mode
-                  if (isSetup) ...[
+                  if (widget.controller.isInEditMode) ...[
                     const SizedBox(height: 24),
                     FullWidthButton(
                       text: 'Save Changes',
