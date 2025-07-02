@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:xceleration/coach/race_screen/screen/race_screen.dart';
-import 'package:xceleration/coach/runners_management_screen/screen/runners_management_screen.dart';
-import 'package:xceleration/core/components/button_components.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/utils/enums.dart' hide EventTypes;
@@ -473,33 +471,6 @@ class RaceController with ChangeNotifier {
 
   // OLD SHEET-BASED IMPLEMENTATION - NO LONGER NEEDED
   // The runners management screen is now integrated directly into the race screen
-
-  /// Check if runners content has changed (not just count)
-  bool _runnersContentChanged(
-      List<dynamic> initialRunners, List<dynamic> finalRunners) {
-    if (initialRunners.length != finalRunners.length) return true;
-
-    // Convert to sets of runner identifiers for comparison
-    final initialIds = initialRunners
-        .map((r) => '${r.bib}-${r.name}-${r.school}-${r.grade}')
-        .toSet();
-    final finalIds = finalRunners
-        .map((r) => '${r.bib}-${r.name}-${r.school}-${r.grade}')
-        .toSet();
-
-    return !initialIds.containsAll(finalIds) ||
-        !finalIds.containsAll(initialIds);
-  }
-
-  /// Check if flow state should be reset to sharing runners when runners are modified
-  bool _shouldResetToSharingRunners(String? flowState) {
-    if (flowState == null) return false;
-
-    // Reset to sharing runners if the race is past the sharing runners step
-    // This includes pre-race-completed and post-race states
-    return flowState == Race.FLOW_PRE_RACE_COMPLETED ||
-        flowState == Race.FLOW_POST_RACE;
-  }
 
   // Validation methods for form fields
   void validateName(String name, StateSetter setSheetState) {
