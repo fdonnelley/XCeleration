@@ -18,6 +18,7 @@ class ReviewRunnersStep extends FlowStep {
             raceId: raceId,
             showHeader: false,
             onBack: null,
+            isViewMode: false,
           ),
           canScroll: false,
           canProceed: () => true,
@@ -46,6 +47,7 @@ class ReviewRunnersStep extends FlowStep {
       onContentChanged: () async {
         checkRunners();
       },
+      isViewMode: false,
     );
   }
 

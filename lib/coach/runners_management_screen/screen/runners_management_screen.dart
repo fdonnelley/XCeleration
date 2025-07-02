@@ -15,6 +15,7 @@ class RunnersManagementScreen extends StatefulWidget {
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
   final bool? showHeader;
+  final bool isViewMode;
 
   // Add a static method that can be called from outside
   static Future<bool> checkMinimumRunnersLoaded(int raceId) async {
@@ -50,6 +51,7 @@ class RunnersManagementScreen extends StatefulWidget {
     this.showHeader,
     this.onBack,
     this.onContentChanged,
+    this.isViewMode = false,
   });
 
   @override
@@ -68,6 +70,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       showHeader: widget.showHeader ?? true,
       onBack: widget.onBack,
       onContentChanged: widget.onContentChanged,
+      isViewMode: widget.isViewMode,
     );
     _controller.init();
   }
@@ -100,15 +103,18 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                         onBack: widget.onBack,
                       ),
                     ],
-                    _buildActionButtons(),
-                    const SizedBox(height: 12),
+
+                    if (!controller.isViewMode) ...[
+                      _buildActionButtons(),
+                      const SizedBox(height: 12),
+                    ],
                     if (controller.runners.isNotEmpty) ...[
                       _buildSearchSection(),
                       const SizedBox(height: 8),
                       const ListTitles(),
                       const SizedBox(height: 4),
                     ],
-                    // Use Expanded instead of Flexible to force the content to take up all available space
+                    // Use Expanded to fill remaining space with top-aligned content
                     Expanded(
                       child: RunnersList(controller: controller),
                     ),
@@ -156,7 +162,10 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
           _controller.filterRunners(_controller.searchController.text);
         });
       },
-      onDeleteAll: () => _controller.confirmDeleteAllRunners(context),
+      onDeleteAll: _controller.isViewMode
+          ? null
+          : () => _controller.confirmDeleteAllRunners(context),
+      isViewMode: _controller.isViewMode,
     );
   }
 }

@@ -9,6 +9,8 @@ import '../../../core/services/event_bus.dart';
 import '../../../shared/models/race.dart';
 import 'dart:async';
 import '../../races_screen/controller/races_controller.dart';
+import '../../runners_management_screen/screen/runners_management_screen.dart';
+import '../../../core/components/sliding_page_view.dart';
 import 'package:provider/provider.dart';
 
 class RaceScreen extends StatefulWidget {
@@ -112,12 +114,27 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Race Header
-            RaceHeader(controller: controller),
             if (controller.race!.flowState != Race.FLOW_FINISHED) ...[
               Expanded(
-                child: SingleChildScrollView(
-                  child: RaceDetailsTab(controller: controller),
+                child: SlidingPageView(
+                  showSecondPage: controller.showingRunnersManagement,
+                  secondPageTitle: 'Runners',
+                  onBackToFirst: controller.navigateToRaceDetails,
+                  firstPage: Column(
+                    children: [
+                      RaceHeader(controller: controller),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: RaceDetailsTab(controller: controller),
+                        ),
+                      ),
+                    ],
+                  ),
+                  secondPage: RunnersManagementScreen(
+                    raceId: controller.raceId,
+                    showHeader: false,
+                    isViewMode: !controller.isInEditMode,
+                  ),
                 ),
               )
             ] else ...[

@@ -7,7 +7,8 @@ class RunnerSearchBar extends StatelessWidget {
   final String searchAttribute;
   final Function(String) onSearchChanged;
   final Function(String?) onAttributeChanged;
-  final VoidCallback onDeleteAll;
+  final VoidCallback? onDeleteAll;
+  final bool isViewMode;
 
   const RunnerSearchBar({
     super.key,
@@ -15,7 +16,8 @@ class RunnerSearchBar extends StatelessWidget {
     required this.searchAttribute,
     required this.onSearchChanged,
     required this.onAttributeChanged,
-    required this.onDeleteAll,
+    this.onDeleteAll,
+    this.isViewMode = false,
   });
 
   @override
@@ -122,30 +124,32 @@ class RunnerSearchBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              SizedBox(
-                height: 48,
-                width: 48,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: ColorUtils.withOpacity(Colors.black, 0.05),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                    border: Border.all(color: AppColors.lightColor),
-                  ),
-                  child: IconButton(
-                    icon: Icon(Icons.delete_outline, color: AppColors.redColor),
-                    tooltip: 'Delete All Runners',
-                    onPressed: onDeleteAll,
+              if (!isViewMode)
+                SizedBox(
+                  height: 48,
+                  width: 48,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: ColorUtils.withOpacity(Colors.black, 0.05),
+                          spreadRadius: 1,
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                      border: Border.all(color: AppColors.lightColor),
+                    ),
+                    child: IconButton(
+                      icon:
+                          Icon(Icons.delete_outline, color: AppColors.redColor),
+                      // tooltip: 'Delete All Runners',
+                      onPressed: onDeleteAll,
+                    ),
                   ),
                 ),
-              ),
             ],
           );
         },

@@ -9,12 +9,14 @@ class RunnerListItem extends StatelessWidget {
   final RunnerRecord runner;
   final Function(String) onAction;
   final RunnersManagementController controller;
+  final bool isViewMode;
 
   const RunnerListItem({
     super.key,
     required this.runner,
     required this.onAction,
     required this.controller,
+    this.isViewMode = false,
   });
 
   @override
@@ -24,6 +26,81 @@ class RunnerListItem extends StatelessWidget {
       (team) => team.name == runner.school,
     );
     final bibColor = team != null ? team.color : AppColors.mediumColor;
+
+    Widget runnerRow = Container(
+      decoration: BoxDecoration(
+        color: bibColor.withAlpha((0.1 * 255).round()),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 8.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 16.0),
+                      child: Text(
+                        runner.name,
+                        style: const TextStyle(fontSize: 16),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Center(
+                      child: Text(
+                        runner.school,
+                        style:
+                            const TextStyle(fontSize: 16, color: Colors.black),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Center(
+                      child: Text(
+                        runner.grade.toString(),
+                        style:
+                            const TextStyle(fontSize: 16, color: Colors.black),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Center(
+                      child: Text(
+                        runner.bib,
+                        style: TextStyle(
+                          color: bibColor,
+                          fontSize: 16,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, color: Colors.grey),
+        ],
+      ),
+    );
+
+    if (isViewMode) {
+      return runnerRow;
+    }
 
     return Slidable(
       key: Key(runner.bib),
@@ -44,77 +121,7 @@ class RunnerListItem extends StatelessWidget {
           ),
         ],
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: bibColor.withAlpha((0.1 * 255).round()),
-        ),
-        child: Column(
-          children: [
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 0.0, vertical: 8.0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 5,
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 16.0),
-                        child: Text(
-                          runner.name,
-                          style: const TextStyle(fontSize: 16),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Center(
-                        child: Text(
-                          runner.school,
-                          style: const TextStyle(
-                              fontSize: 16, color: Colors.black),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Center(
-                        child: Text(
-                          runner.grade.toString(),
-                          style: const TextStyle(
-                              fontSize: 16, color: Colors.black),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Center(
-                        child: Text(
-                          runner.bib,
-                          style: TextStyle(
-                            color: bibColor,
-                            fontSize: 16,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const Divider(height: 1, thickness: 1, color: Colors.grey),
-          ],
-        ),
-      ),
+      child: runnerRow,
     );
   }
 }

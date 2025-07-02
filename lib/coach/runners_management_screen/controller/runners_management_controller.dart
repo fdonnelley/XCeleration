@@ -29,12 +29,17 @@ class RunnersManagementController with ChangeNotifier {
   final int raceId;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
+  final bool isViewMode;
+
+  // Store initial state to compare with final state
+  List<RunnerRecord> _initialRunners = [];
 
   RunnersManagementController({
     required this.raceId,
     this.showHeader = true,
     this.onBack,
     this.onContentChanged,
+    this.isViewMode = false,
   });
 
   Future<void> init() async {
@@ -86,6 +91,12 @@ class RunnersManagementController with ChangeNotifier {
     runners = await DatabaseHelper.instance.getRaceRunners(raceId);
     filteredRunners = runners;
     sortRunners();
+
+    // Capture initial state on first load
+    if (_initialRunners.isEmpty) {
+      _initialRunners = List.from(runners);
+    }
+
     notifyListeners();
     onContentChanged?.call();
   }
@@ -246,6 +257,47 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> updateRunner(RunnerRecord runner) async {
     await DatabaseHelper.instance.updateRaceRunner(runner);
+  }
+
+  /// Reset flow state to sharing runners if actual changes were made
+  Future<void> _resetFlowStateOnExit() async {
+    // Compare current runners with initial state
+    if (!_hasActualChanges()) return;
+
+    final race = await DatabaseHelper.instance.getRaceById(raceId);
+    if (race == null) return;
+
+    // Check if flow state should be reset to sharing runners
+    final shouldReset = _shouldResetToSharingRunners(race.flowState);
+    if (shouldReset) {
+      Logger.d(
+          'Resetting flow state to sharing runners due to runner modifications');
+      await DatabaseHelper.instance.updateRaceFlowState(raceId, 'pre-race');
+    }
+  }
+
+  /// Check if there are actual changes between initial and current runners
+  bool _hasActualChanges() {
+    if (_initialRunners.length != runners.length) return true;
+
+    // Convert to sets of runner identifiers for comparison
+    final initialIds = _initialRunners
+        .map((r) => '${r.bib}-${r.name}-${r.school}-${r.grade}')
+        .toSet();
+    final currentIds =
+        runners.map((r) => '${r.bib}-${r.name}-${r.school}-${r.grade}').toSet();
+
+    return !initialIds.containsAll(currentIds) ||
+        !currentIds.containsAll(initialIds);
+  }
+
+  /// Check if flow state should be reset to sharing runners when runners are modified
+  bool _shouldResetToSharingRunners(String? flowState) {
+    if (flowState == null) return false;
+
+    // Reset to sharing runners if the race is past the sharing runners step
+    // This includes pre-race-completed and post-race states
+    return flowState == 'pre-race-completed' || flowState == 'post-race';
   }
 
   Future<void> confirmDeleteAllRunners(BuildContext context) async {
@@ -537,6 +589,8 @@ class RunnersManagementController with ChangeNotifier {
 
   @override
   void dispose() {
+    // Reset flow state if changes were made during this session
+    _resetFlowStateOnExit();
     searchController.dispose();
     disposeControllers();
     super.dispose();

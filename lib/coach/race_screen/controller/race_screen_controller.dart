@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:xceleration/coach/race_screen/screen/race_screen.dart';
-import 'package:xceleration/coach/runners_management_screen/screen/runners_management_screen.dart';
-import 'package:xceleration/core/components/button_components.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/utils/enums.dart' hide EventTypes;
@@ -19,6 +17,12 @@ import '../../races_screen/controller/races_controller.dart';
 import '../services/race_service.dart';
 import 'package:provider/provider.dart';
 
+/// Enum to define the interaction mode of the race screen
+enum RaceScreenMode {
+  editMode,
+  viewMode,
+}
+
 /// Controller class for the RaceScreen that handles all business logic
 class RaceController with ChangeNotifier {
   // Race data
@@ -29,6 +33,12 @@ class RaceController with ChangeNotifier {
 
   // UI state properties
   bool isLocationButtonVisible = true; // Control visibility of location button
+  RaceScreenMode screenMode =
+      RaceScreenMode.viewMode; // Track screen interaction mode
+
+  // Navigation state
+  bool _showingRunnersManagement = false;
+  bool get showingRunnersManagement => _showingRunnersManagement;
 
   // Runtime state
   int runnersCount = 0;
@@ -57,18 +67,47 @@ class RaceController with ChangeNotifier {
   // Flow state
   String get flowState => race?.flowState ?? 'setup';
 
+  // Helper getter for checking if in edit mode
+  bool get isInEditMode => screenMode == RaceScreenMode.editMode;
+
   RacesController parentController;
 
-  RaceController({required this.raceId, required this.parentController});
+  RaceController(
+      {required this.raceId,
+      required this.parentController,
+      this.screenMode = RaceScreenMode.viewMode});
 
   static Future<void> showRaceScreen(
       BuildContext context, RacesController parentController, int raceId,
-      {RaceScreenPage page = RaceScreenPage.main}) async {
+      {RaceScreenPage page = RaceScreenPage.main,
+      RaceScreenMode screenMode = RaceScreenMode.viewMode}) async {
+    // Load race data to determine the appropriate screen mode
+    final race = await DatabaseHelper.instance.getRaceById(raceId);
+
+    // Determine final screen mode based on race state and requested mode
+    RaceScreenMode finalScreenMode = screenMode;
+    if (race != null) {
+      // Always use edit mode if race is in setup state
+      if (race.flowState == Race.FLOW_SETUP) {
+        finalScreenMode = RaceScreenMode.editMode;
+      }
+      // Force view mode if race cannot be edited (processing results or finished)
+      else if (screenMode == RaceScreenMode.editMode) {
+        if (race.flowState == Race.FLOW_POST_RACE ||
+            race.flowState == Race.FLOW_FINISHED) {
+          finalScreenMode = RaceScreenMode.viewMode;
+        }
+      }
+    }
+    if (!context.mounted) return;
+
     await sheet(
       context: context,
       body: ChangeNotifierProvider(
-        create: (_) =>
-            RaceController(raceId: raceId, parentController: parentController),
+        create: (_) => RaceController(
+            raceId: raceId,
+            parentController: parentController,
+            screenMode: finalScreenMode),
         child: RaceScreen(
           raceId: raceId,
           parentController: parentController,
@@ -247,6 +286,12 @@ class RaceController with ChangeNotifier {
     return loadedRace;
   }
 
+  /// Load race data without overwriting form controllers (preserves unsaved changes)
+  Future<Race?> loadRaceDataOnly() async {
+    final loadedRace = await DatabaseHelper.instance.getRaceById(raceId);
+    return loadedRace;
+  }
+
   /// Update the race flow state
   Future<void> updateRaceFlowState(
       BuildContext context, String newState) async {
@@ -381,40 +426,51 @@ class RaceController with ChangeNotifier {
     await flowController.handleFlowNavigation(context, race!.flowState);
   }
 
-  /// Load runners management screen
-  Future<void> loadRunnersManagementScreen(BuildContext context) async {
-    await sheet(
-      context: context,
-      takeUpScreen: true,
-      title: 'Load Runners',
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: RunnersManagementScreen(
-              raceId: raceId,
-              showHeader: false,
-            ),
-          ),
-          const SizedBox(height: 16),
-          FullWidthButton(
-            text: 'Done',
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
-      showHeader: true,
-    );
-    // Refresh race data when runners are changed
-    race = await loadRace();
-    if (context.mounted) {
-      await saveRaceDetails(context);
+  /// Navigate to runners management screen with confirmation if needed
+  Future<void> loadRunnersManagementScreenWithConfirmation(BuildContext context,
+      {bool isViewMode = false}) async {
+    // Check if we need to show confirmation dialog only in edit mode
+    if (!isViewMode && _shouldShowRunnersEditConfirmation()) {
+      final confirmed = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Edit Runners',
+        content:
+            'You have already shared runners with your assistants. If you make changes, you will need to reshare the updated runner list.\n\nDo you want to continue?',
+        confirmText: 'Continue',
+        cancelText: 'Cancel',
+      );
+
+      if (!confirmed) return;
     }
+
+    // Navigate to runners management screen
+    navigateToRunnersManagement(isViewMode: isViewMode);
+  }
+
+  /// Navigate to runners management screen
+  void navigateToRunnersManagement({bool isViewMode = false}) {
+    _showingRunnersManagement = true;
     notifyListeners();
   }
+
+  /// Navigate back to race details
+  void navigateToRaceDetails() {
+    _showingRunnersManagement = false;
+    notifyListeners();
+  }
+
+  /// Check if we should show confirmation dialog before editing runners
+  bool _shouldShowRunnersEditConfirmation() {
+    if (race == null) return false;
+
+    // Show confirmation only if runners have already been shared with assistants
+    final flowState = race!.flowState;
+    return flowState == Race.FLOW_PRE_RACE_COMPLETED ||
+        flowState == Race.FLOW_POST_RACE;
+  }
+
+  // OLD SHEET-BASED IMPLEMENTATION - NO LONGER NEEDED
+  // The runners management screen is now integrated directly into the race screen
 
   // Validation methods for form fields
   void validateName(String name, StateSetter setSheetState) {
