@@ -71,9 +71,8 @@ class RunnersList extends StatelessWidget {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       child: ListView.builder(
-        shrinkWrap: true,
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(top: 0, bottom: 8),
         itemCount: sortedSchools.length,
         itemBuilder: (context, index) {
           final school = sortedSchools[index];
@@ -145,6 +144,7 @@ class RunnersList extends StatelessWidget {
                       controller: controller,
                       onAction: (action) => controller.handleRunnerAction(
                           context, action, runner),
+                      isViewMode: controller.isViewMode,
                     )),
               ],
             ),

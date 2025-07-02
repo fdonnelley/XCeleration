@@ -38,6 +38,10 @@ class RaceController with ChangeNotifier {
   RaceScreenMode screenMode =
       RaceScreenMode.viewMode; // Track screen interaction mode
 
+  // Navigation state
+  bool _showingRunnersManagement = false;
+  bool get showingRunnersManagement => _showingRunnersManagement;
+
   // Runtime state
   int runnersCount = 0;
 
@@ -424,11 +428,11 @@ class RaceController with ChangeNotifier {
     await flowController.handleFlowNavigation(context, race!.flowState);
   }
 
-  /// Load runners management screen with confirmation if needed
-  Future<void> loadRunnersManagementScreenWithConfirmation(
-      BuildContext context) async {
-    // Check if we need to show confirmation dialog
-    if (_shouldShowRunnersEditConfirmation()) {
+  /// Navigate to runners management screen with confirmation if needed
+  Future<void> loadRunnersManagementScreenWithConfirmation(BuildContext context,
+      {bool isViewMode = false}) async {
+    // Check if we need to show confirmation dialog only in edit mode
+    if (!isViewMode && _shouldShowRunnersEditConfirmation()) {
       final confirmed = await DialogUtils.showConfirmationDialog(
         context,
         title: 'Edit Runners',
@@ -441,8 +445,20 @@ class RaceController with ChangeNotifier {
       if (!confirmed) return;
     }
 
-    // Proceed with loading runners management screen
-    await loadRunnersManagementScreen(context);
+    // Navigate to runners management screen
+    navigateToRunnersManagement(isViewMode: isViewMode);
+  }
+
+  /// Navigate to runners management screen
+  void navigateToRunnersManagement({bool isViewMode = false}) {
+    _showingRunnersManagement = true;
+    notifyListeners();
+  }
+
+  /// Navigate back to race details
+  void navigateToRaceDetails() {
+    _showingRunnersManagement = false;
+    notifyListeners();
   }
 
   /// Check if we should show confirmation dialog before editing runners
@@ -455,64 +471,8 @@ class RaceController with ChangeNotifier {
         flowState == Race.FLOW_POST_RACE;
   }
 
-  /// Load runners management screen
-  Future<void> loadRunnersManagementScreen(BuildContext context) async {
-    // Store initial runner count to detect changes
-    final initialRunners = await DatabaseHelper.instance.getRaceRunners(raceId);
-    final initialRunnerCount = initialRunners.length;
-    final initialFlowState = race?.flowState;
-
-    if (!context.mounted) return;
-
-    await sheet(
-      context: context,
-      takeUpScreen: true,
-      title: 'Load Runners',
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: RunnersManagementScreen(
-              raceId: raceId,
-              showHeader: false,
-            ),
-          ),
-          const SizedBox(height: 16),
-          FullWidthButton(
-            text: 'Done',
-            onPressed: () {
-              if (context.mounted) {
-                Navigator.of(context).pop();
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
-      showHeader: true,
-    );
-
-    // Check if runners were modified
-    final finalRunners = await DatabaseHelper.instance.getRaceRunners(raceId);
-    final finalRunnerCount = finalRunners.length;
-    final runnersChanged = initialRunnerCount != finalRunnerCount ||
-        _runnersContentChanged(initialRunners, finalRunners);
-
-    // Refresh race data without overwriting form controllers (preserves unsaved changes)
-    race = await loadRaceDataOnly();
-    await loadRunnersCount(); // Update runners count for display
-
-    if (context.mounted) {
-      // If runners changed and race is past sharing runners step, reset to sharing runners
-      if (runnersChanged && _shouldResetToSharingRunners(initialFlowState)) {
-        // Check context is still mounted before updating flow state
-        if (context.mounted) {
-          await updateRaceFlowState(context, Race.FLOW_PRE_RACE);
-        }
-      }
-    }
-    notifyListeners();
-  }
+  // OLD SHEET-BASED IMPLEMENTATION - NO LONGER NEEDED
+  // The runners management screen is now integrated directly into the race screen
 
   /// Check if runners content has changed (not just count)
   bool _runnersContentChanged(

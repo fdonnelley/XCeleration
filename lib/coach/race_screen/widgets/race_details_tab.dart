@@ -25,7 +25,6 @@ class RaceDetailsTab extends StatefulWidget {
 
 class _RaceDetailsTabState extends State<RaceDetailsTab> {
   bool detailsChanged = false;
-  bool _showingRunners = false;
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _distanceController = TextEditingController();
@@ -59,12 +58,6 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
     _unitController.text =
         race.distanceUnit.isNotEmpty ? race.distanceUnit : 'mi';
     _teamsController.text = race.teams.join(', ');
-  }
-
-  void _toggleView() {
-    setState(() {
-      _showingRunners = !_showingRunners;
-    });
   }
 
   @override
@@ -194,9 +187,10 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                             ),
                       const SizedBox(height: 16),
                       InkWell(
-                        onTap: widget.controller.race?.flowState == 'finished'
-                            ? _toggleView
-                            : null,
+                        onTap: () => widget.controller
+                            .loadRunnersManagementScreenWithConfirmation(
+                                context,
+                                isViewMode: !widget.controller.isInEditMode),
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 16),
                           child: Row(
@@ -236,33 +230,17 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                   ],
                                 ),
                               ),
-                              if (widget.controller.race?.flowState ==
-                                  'finished')
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const SizedBox(width: 8),
-                                    Icon(
-                                      Icons.chevron_right,
-                                      color: AppColors.primaryColor,
-                                      size: 28,
-                                    ),
-                                  ],
-                                ),
-                              if ((widget.controller.isInEditMode &&
-                                  hasTeams)) ...[
-                                SecondaryButton(
-                                  text: runnerCount > 0
-                                      ? 'Edit Runners'
-                                      : 'Load Runners',
-                                  icon: runnerCount > 0
-                                      ? Icons.edit
-                                      : Icons.person_add,
-                                  onPressed: () => widget.controller
-                                      .loadRunnersManagementScreenWithConfirmation(
-                                          context),
-                                ),
-                              ],
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.chevron_right,
+                                    color: AppColors.primaryColor,
+                                    size: 28,
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),

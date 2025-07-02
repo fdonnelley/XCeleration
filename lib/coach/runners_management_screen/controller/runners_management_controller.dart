@@ -29,12 +29,14 @@ class RunnersManagementController with ChangeNotifier {
   final int raceId;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
+  final bool isViewMode;
 
   RunnersManagementController({
     required this.raceId,
     this.showHeader = true,
     this.onBack,
     this.onContentChanged,
+    this.isViewMode = false,
   });
 
   Future<void> init() async {
